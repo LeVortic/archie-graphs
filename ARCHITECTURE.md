@@ -210,7 +210,7 @@ ArtifactStore.read/write(manifest, artifact)
 
 The interchange boundary is JSON Schema Draft 2020-12. Schemas live in `schemas/`.
 
-- `extractor-request.v1` and `extractor-result.v1` define the adapter boundary.
+- `archie.extractor-request.v1` and `archie.extractor-result.v1` define the adapter boundary.
 - `index-manifest.v1` defines artifact identity and publication state.
 - `evidence-ref.v1` links claims to source spans, graph edges, or graph paths.
 - `answer-record.v1`, `benchmark-question.v1`, and `experiment-record.v1` define evaluation data.
