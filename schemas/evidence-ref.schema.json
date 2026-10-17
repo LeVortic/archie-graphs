@@ -2,6 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/LeVortic/archie-graphs/schemas/evidence-ref.schema.json",
   "title": "Evidence reference",
+  "$comment": "Major version is encoded in the referencing answer schema; revisions are additive within that contract.",
   "oneOf": [
     {
       "type": "object",

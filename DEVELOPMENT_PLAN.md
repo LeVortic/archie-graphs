@@ -6,7 +6,7 @@
 2. Record tool versions, local model runtime, hardware, operating system, and reproducibility commands.
 3. Choose one local embedding model, one local language model, and one vector-index implementation.
 4. Define JSON Schema Draft 2020-12 contracts under `schemas/` for extractor requests/results, manifests, evidence, answers, benchmarks, experiments, and shared types.
-5. Define canonical ID, path, source-span, hash, ordering, enum, compatibility, and failure-state rules.
+5. Define canonical ID, path, source-span, hash, ordering, enum, major `schema_version`, additive `schema_revision`, compatibility, and failure-state rules.
 
 **Gate:** A fresh checkout can install dependencies and pass valid/invalid schema contract tests.
 
@@ -17,7 +17,7 @@
 3. Add shared sample fixtures: a small buildable `.sln`, projects, inheritance, interface implementation, field and constructor use, method calls, cycles, and an unresolved reference.
 4. Add unit-test, integration-test, lint, format, and schema-validation commands.
 5. Add setup and usage documentation with the exact local-model prerequisites.
-6. Add schema fixtures and contract tests for missing fields, unknown fields, invalid enums, bad paths, and incompatible versions.
+6. Add schema fixtures and contract tests for a Roslyn-shaped result, a fake extractor, malformed output, missing fields, unknown fields, invalid enums, bad paths, incompatible major versions, and newer minor revisions.
 
 **Gate:** Fixture solution indexes through the CLI and produces validated versioned JSON.
 

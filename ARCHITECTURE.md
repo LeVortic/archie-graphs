@@ -216,7 +216,7 @@ The interchange boundary is JSON Schema Draft 2020-12. Schemas live in `schemas/
 - `answer-record.v1`, `benchmark-question.v1`, and `experiment-record.v1` define evaluation data.
 - `common.schema.json` defines IDs, source spans, diagnostics, nodes, edges, and claims.
 
-Persisted objects reject unknown fields. Additive fields use a minor contract release. Changed meaning or removed fields requires a new major `vN` schema identifier.
+Persisted objects reject unknown fields. Top-level contracts use `schema_version: archie.<contract>.v1` for major compatibility and optional `schema_revision` for additive revisions. A changed meaning or removed field requires a new major `vN` schema identifier.
 
 ### Canonical identity
 

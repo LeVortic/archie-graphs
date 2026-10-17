@@ -7,6 +7,7 @@
   "required": ["schema_version", "question_id", "mode", "answer", "claims", "evidence", "run", "status"],
   "properties": {
     "schema_version": { "const": "archie.answer-record.v1" },
+    "schema_revision": { "type": "integer", "minimum": 1, "default": 1 },
     "question_id": { "$ref": "common.schema.json#/$defs/identifier" },
     "mode": { "type": "string", "enum": ["source", "graph"] },
     "answer": { "type": "string" },

@@ -7,6 +7,7 @@
   "required": ["schema_version", "input", "options"],
   "properties": {
     "schema_version": { "const": "archie.extractor-request.v1" },
+    "schema_revision": { "type": "integer", "minimum": 1, "default": 1 },
     "input": {
       "type": "object",
       "additionalProperties": false,

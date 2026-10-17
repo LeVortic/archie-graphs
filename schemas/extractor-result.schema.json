@@ -7,6 +7,7 @@
   "required": ["schema_version", "extractor", "input", "status", "projects", "nodes", "edges", "diagnostics"],
   "properties": {
     "schema_version": { "const": "archie.extractor-result.v1" },
+    "schema_revision": { "type": "integer", "minimum": 1, "default": 1 },
     "extractor": { "$ref": "common.schema.json#/$defs/extractorInfo" },
     "input": {
       "type": "object",

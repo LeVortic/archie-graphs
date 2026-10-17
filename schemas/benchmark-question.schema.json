@@ -7,6 +7,7 @@
   "required": ["schema_version", "id", "question", "expected_facts", "dependency_depth"],
   "properties": {
     "schema_version": { "const": "archie.benchmark-question.v1" },
+    "schema_revision": { "type": "integer", "minimum": 1, "default": 1 },
     "id": { "$ref": "common.schema.json#/$defs/identifier" },
     "question": { "type": "string", "minLength": 1 },
     "expected_facts": {

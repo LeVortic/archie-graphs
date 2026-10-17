@@ -33,11 +33,24 @@ def test_valid_extractor_result():
     validate_fixture("extractor-result.schema.json", ROOT / "fixtures/schemas/valid/extractor-result.json")
 
 
+def test_fake_extractor_uses_same_contract():
+    value = json.loads((ROOT / "fixtures/schemas/valid/extractor-result.json").read_text())
+    value["extractor"]["id"] = "fake"
+    validate_schema = load_schema("extractor-result.schema.json")
+    Draft202012Validator(validate_schema, registry=schema_registry()).validate(value)
+
+
 def test_invalid_extractor_result():
     schema = load_schema("extractor-result.schema.json")
     fixture = ROOT / "fixtures/schemas/invalid/extractor-result-missing-status.json"
     with pytest.raises(ValidationError):
         Draft202012Validator(schema, registry=schema_registry()).validate(json.loads(fixture.read_text()))
+
+
+def test_malformed_output_is_rejected():
+    fixture = ROOT / "fixtures/schemas/invalid/malformed.json"
+    with pytest.raises(json.JSONDecodeError):
+        json.loads(fixture.read_text())
 
 
 @pytest.fixture
@@ -69,6 +82,13 @@ def test_rejects_contract_violations(valid_extractor_result):
     for value in invalid_values:
         with pytest.raises(ValidationError):
             validator.validate(value)
+
+
+def test_newer_minor_revision_remains_valid():
+    value = json.loads((ROOT / "fixtures/schemas/valid/extractor-result.json").read_text())
+    value["schema_revision"] = 2
+    schema = load_schema("extractor-result.schema.json")
+    Draft202012Validator(schema, registry=schema_registry()).validate(value)
 
 
 def test_all_schema_files_are_json_schema_documents():

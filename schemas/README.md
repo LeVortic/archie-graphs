@@ -1,6 +1,6 @@
 # Schema contracts
 
-Schemas use JSON Schema Draft 2020-12. `$id` values use the repository URL and identify exact schema documents. Persisted objects reject unknown fields. Additive fields require a minor contract release; changed meaning or removed fields require a new major `vN` schema identifier.
+Schemas use JSON Schema Draft 2020-12. `$id` values use the repository URL and identify exact schema documents. Persisted objects reject unknown fields. Top-level contracts use `schema_version: archie.<contract>.v1` for major compatibility and optional `schema_revision` for additive revisions. A changed meaning or removed field requires a new major `vN` schema identifier.
 
 ## Contracts
 
