@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/LeVortic/archie-graphs/schemas/benchmark-question.schema.json",
+  "title": "Benchmark question",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "id", "question", "expected_facts", "dependency_depth"],
+  "properties": {
+    "schema_version": { "const": "archie.benchmark-question.v1" },
+    "id": { "$ref": "common.schema.json#/$defs/identifier" },
+    "question": { "type": "string", "minLength": 1 },
+    "expected_facts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "text"],
+        "properties": {
+          "id": { "$ref": "common.schema.json#/$defs/identifier" },
+          "text": { "type": "string", "minLength": 1 },
+          "required_evidence_kinds": { "type": "array", "items": { "enum": ["source_span", "graph_edge", "graph_path"] }, "uniqueItems": true }
+        }
+      }
+    },
+    "dependency_depth": { "type": "integer", "minimum": 0 },
+    "acceptable_citations": { "type": "array", "items": { "type": "string" } }
+  }
+}

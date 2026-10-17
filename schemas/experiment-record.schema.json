@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/LeVortic/archie-graphs/schemas/experiment-record.schema.json",
+  "title": "Experiment record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "run_id", "benchmark_version", "seed", "configuration", "answers"],
+  "properties": {
+    "schema_version": { "const": "archie.experiment-record.v1" },
+    "run_id": { "$ref": "common.schema.json#/$defs/identifier" },
+    "benchmark_version": { "type": "string", "minLength": 1 },
+    "seed": { "type": "integer", "minimum": 0 },
+    "configuration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model_id", "context_budget_tokens", "modes"],
+      "properties": {
+        "model_id": { "type": "string" },
+        "embedding_model_id": { "type": "string" },
+        "context_budget_tokens": { "type": "integer", "minimum": 1 },
+        "modes": { "type": "array", "items": { "enum": ["source", "graph"] }, "minItems": 2, "uniqueItems": true }
+      }
+    },
+    "answers": { "type": "array", "items": { "$ref": "answer-record.schema.json" } },
+    "started_at": { "type": "string", "format": "date-time" },
+    "finished_at": { "type": "string", "format": "date-time" }
+  }
+}

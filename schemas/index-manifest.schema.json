@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/LeVortic/archie-graphs/schemas/index-manifest.schema.json",
+  "title": "Index manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "index_id", "status", "source", "extractor", "artifacts", "created_at"],
+  "properties": {
+    "schema_version": { "const": "archie.index-manifest.v1" },
+    "index_id": { "$ref": "common.schema.json#/$defs/identifier" },
+    "status": { "type": "string", "enum": ["building", "complete", "failed"] },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["content_hash"],
+      "properties": {
+        "path": { "type": "string" },
+        "content_hash": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+        "source_revision": { "type": "string" }
+      }
+    },
+    "extractor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["interface_version", "id", "version"],
+      "properties": {
+        "interface_version": { "const": "archie.extractor-interface.v1" },
+        "id": { "type": "string" },
+        "version": { "type": "string" }
+      }
+    },
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["extractor", "graph", "source_chunks", "diagnostics"],
+      "properties": {
+        "extractor": { "$ref": "common.schema.json#/$defs/relativePath" },
+        "graph": { "$ref": "common.schema.json#/$defs/relativePath" },
+        "source_chunks": { "$ref": "common.schema.json#/$defs/relativePath" },
+        "embeddings": { "$ref": "common.schema.json#/$defs/relativePath" },
+        "diagnostics": { "$ref": "common.schema.json#/$defs/relativePath" }
+      }
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "error": { "$ref": "common.schema.json#/$defs/diagnostic" }
+  }
+}

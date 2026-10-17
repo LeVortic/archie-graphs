@@ -1,0 +1,14 @@
+{
+  "schema_version": "archie.extractor-result.v1",
+  "extractor": {
+    "id": "roslyn",
+    "version": "0.1.0",
+    "interface_version": "archie.extractor-interface.v1",
+    "capabilities": []
+  },
+  "input": {"path": "/repo/App.sln", "content_hash": "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"},
+  "projects": [],
+  "nodes": [],
+  "edges": [],
+  "diagnostics": []
+}

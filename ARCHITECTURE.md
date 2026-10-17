@@ -206,6 +206,50 @@ ArtifactStore.read/write(manifest, artifact)
 6. Never send repository content to a remote service. Model adapters are local-only by contract.
 7. Write artifacts atomically and keep failed experiment records.
 
+## Contract schemas
+
+The interchange boundary is JSON Schema Draft 2020-12. Schemas live in `schemas/`.
+
+- `extractor-request.v1` and `extractor-result.v1` define the adapter boundary.
+- `index-manifest.v1` defines artifact identity and publication state.
+- `evidence-ref.v1` links claims to source spans, graph edges, or graph paths.
+- `answer-record.v1`, `benchmark-question.v1`, and `experiment-record.v1` define evaluation data.
+- `common.schema.json` defines IDs, source spans, diagnostics, nodes, edges, and claims.
+
+Persisted objects reject unknown fields. Additive fields use a minor contract release. Changed meaning or removed fields requires a new major `vN` schema identifier.
+
+### Canonical identity
+
+- IDs use a namespace prefix, such as `project:App` or `type:App.CheckoutController`.
+- Project identity is part of every symbol identity.
+- Artifact paths are repository-relative, use `/`, and cannot contain `..`.
+- Lines and columns are one-based and inclusive.
+- Content hashes use lowercase `sha256:<64 hex digits>`.
+- Producers sort persisted arrays deterministically.
+
+### Extractor port
+
+```text
+probe(input) -> capabilities and diagnostics
+extract(request) -> ExtractorResult
+cancel(operation_id) -> acknowledgement
+```
+
+Adapters advertise capabilities. The Python pipeline consumes only the shared result contract and must not import Roslyn types or assume unsupported node kinds.
+
+### Diagnostics and failure states
+
+Every diagnostic has `code`, `severity`, `message`, `component`, and `recoverable`; optional path and source span identify the cause. Extractors return `succeeded`, `partial`, or `failed`. Indexes use `building`, `complete`, or `failed`.
+
+### Artifact publication
+
+1. Write to a temporary index directory.
+2. Write a `building` manifest.
+3. Validate artifacts and cross-references.
+4. Set manifest to `complete` only after validation.
+5. Rename the completed directory atomically.
+6. Preserve `failed` manifests and diagnostics.
+
 ## Artifact layout
 
 ```text
@@ -233,6 +277,7 @@ Every manifest records schema versions, source commit or content hash, extractor
 - Golden tests: stable extractor JSON, graph query JSON, and CLI output.
 - Evaluation tests: metric calculations on hand-built answers, including unsupported claims and missing citations.
 - Reproducibility test: clean checkout runs the fixture workflow with fixed seed and produces valid manifests.
+- Schema contract tests: valid fixtures pass; missing fields, unknown fields, invalid enums, bad paths, and incompatible versions fail.
 
 ## Non-functional rules
 

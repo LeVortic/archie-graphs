@@ -1,0 +1,34 @@
+{
+  "schema_version": "archie.extractor-result.v1",
+  "extractor": {
+    "id": "roslyn",
+    "version": "0.1.0",
+    "interface_version": "archie.extractor-interface.v1",
+    "capabilities": ["csharp", "symbols", "calls"]
+  },
+  "input": {
+    "path": "/repo/App.sln",
+    "content_hash": "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    "source_revision": "abc123"
+  },
+  "status": "succeeded",
+  "projects": [{"id": "project:App", "name": "App", "path": "src/App/App.csproj"}],
+  "nodes": [{
+    "id": "type:App.CheckoutController",
+    "kind": "type",
+    "name": "CheckoutController",
+    "qualified_name": "App.CheckoutController",
+    "project_id": "project:App",
+    "source": {"path": "src/App/CheckoutController.cs", "start_line": 1, "start_column": 1, "end_line": 20, "end_column": 2}
+  }],
+  "edges": [{
+    "id": "edge:checkout-controller-service",
+    "from": "type:App.CheckoutController",
+    "to": "type:App.CheckoutService",
+    "kind": "constructor_use",
+    "status": "extracted",
+    "source": {"path": "src/App/CheckoutController.cs", "start_line": 6, "start_column": 10, "end_line": 6, "end_column": 25},
+    "confidence": 1
+  }],
+  "diagnostics": []
+}
