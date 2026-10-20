@@ -20,6 +20,13 @@
     "qualified_name": "App.CheckoutController",
     "project_id": "project:App",
     "source": {"path": "src/App/CheckoutController.cs", "start_line": 1, "start_column": 1, "end_line": 20, "end_column": 2}
+  }, {
+    "id": "type:App.CheckoutService",
+    "kind": "type",
+    "name": "CheckoutService",
+    "qualified_name": "App.CheckoutService",
+    "project_id": "project:App",
+    "source": {"path": "src/App/CheckoutService.cs", "start_line": 1, "start_column": 1, "end_line": 3, "end_column": 1}
   }],
   "edges": [{
     "id": "edge:checkout-controller-service",

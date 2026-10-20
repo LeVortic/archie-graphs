@@ -1,3 +1,16 @@
+# .NET build output and local IDE state
+**/bin/
+**/obj/
+.vs/
+*.csproj.user
+*.suo
+
+# Generated indexes and experiments
+/artifacts/
+
+# Local real-world test checkout; keep the small C# fixture tracked
+/fixtures/MarkovJunior/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -51,6 +64,7 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 cover/
+ignore/
 
 # Translations
 *.mo
