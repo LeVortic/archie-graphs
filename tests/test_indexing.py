@@ -98,11 +98,28 @@ def test_roslyn_fixture_end_to_end(tmp_path):
     assert a == b
     assert a["status"] == "succeeded", a["diagnostics"]
     assert len(a["projects"]) == 2
-    assert {e["kind"] for e in a["edges"]} == {"inherits", "implements", "calls"}
+    assert {e["kind"] for e in a["edges"]} == {"inherits", "implements", "calls", "field_use", "constructor_use"}
     by_id = {n["id"]: n for n in a["nodes"]}
     call = next(e for e in a["edges"] if e["kind"] == "calls")
     assert by_id[call["from"]]["project_id"] != by_id[call["to"]]["project_id"]
     assert call["source"]["start_line"] == 9
+    assert {"field_use", "constructor_use"} <= set(a["extractor"]["capabilities"])
+    dependencies = [e for e in a["edges"] if e["kind"] in {"field_use", "constructor_use"}]
+    assert {(e["kind"], by_id[e["from"]]["name"], by_id[e["to"]]["name"],
+             e["source"]["start_line"]) for e in dependencies} == {
+        ("field_use", "Controller", "IService", 7),
+        ("constructor_use", "Controller", "IService", 8),
+        ("constructor_use", "Controller", "Service", 10),
+        ("constructor_use", "Controller", "Service", 11),
+    }
+    lines = (ROOT / "fixtures/csharp/App/Controller.cs").read_text().splitlines()
+    for edge in dependencies:
+        assert by_id[edge["from"]]["project_id"] != by_id[edge["to"]]["project_id"]
+        span = edge["source"]
+        assert span["path"] == "App/Controller.cs"
+        assert span["start_line"] == span["end_line"]
+        evidence = lines[span["start_line"] - 1][span["start_column"] - 1:span["end_column"]]
+        assert evidence == {7: "IService", 8: "IService", 10: "new Service()", 11: "new()"}[span["start_line"]]
 
 
 @pytest.mark.skipif(not ASSEMBLY.is_file(), reason="Build the Roslyn extractor before integration tests")
@@ -115,4 +132,19 @@ def test_unresolved_call_is_diagnostic_not_edge(tmp_path):
     validate_index(result, tmp_path)
     assert result["status"] == "partial"
     assert any(d["code"] == "UNRESOLVED_CALL" for d in result["diagnostics"])
+    assert result["edges"] == []
+
+
+@pytest.mark.skipif(not ASSEMBLY.is_file(), reason="Build the Roslyn extractor before integration tests")
+def test_unresolved_dependencies_remain_diagnostics(tmp_path):
+    project = tmp_path / "Broken.csproj"
+    project.write_text((ROOT / "fixtures/csharp/Core/Core.csproj").read_text())
+    (tmp_path / "Broken.cs").write_text(
+        "public class Broken { Missing field; string external; public Broken(Missing value, string text) {} "
+        "public object External() => new object(); public object Create() => new Missing(); }\n")
+    result = RoslynExtractor().extract({"schema_version": "archie.extractor-request.v1",
+        "input": {"path": str(project)}, "options": {"timeout_seconds": 120}})
+    validate_index(result, tmp_path)
+    assert result["status"] == "partial"
+    assert {"UNRESOLVED_SYMBOL", "UNRESOLVED_CONSTRUCTOR"} <= {d["code"] for d in result["diagnostics"]}
     assert result["edges"] == []

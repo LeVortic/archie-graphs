@@ -30,7 +30,7 @@ These flags work around that local installation; a normal SDK should use the sta
 
 1. `archie index` checks the input and creates a staging directory with a `building` manifest.
 2. Python sends a versioned request to the Roslyn process, enforcing a 120-second timeout.
-3. Roslyn loads the solution and resolves types, methods, inheritance, interface implementation, and method calls. IDs contain project paths and documentation symbol identities. Edges contain inclusive source spans. Unresolved calls and compiler errors become diagnostics.
+3. Roslyn loads the solution and resolves types, methods, inheritance, interface implementation, method calls, field types, and constructor dependencies. IDs contain project paths and documentation symbol identities. Edges contain inclusive source spans. Unresolved calls and compiler errors become diagnostics.
 4. Python validates JSON Schema, unique IDs, project membership, edge endpoints, source containment, and source ranges. Unsupported or unbacked edges cannot enter the index.
 5. Python writes extractor output, graph records, source snapshots, and diagnostics. It validates the complete manifest and renames the staging directory atomically.
 6. Errors preserve a failed manifest in the staging directory. CLI failures return exit code 1; successful output identifies the published directory.
@@ -48,7 +48,9 @@ Published indexes contain `manifest.json`, `extractor.json`, `graph.json`, `sour
 - Relationships to external framework symbols are omitted. Partial extraction retains diagnostics and can produce a complete index of the validated subset; inspect `extractor.json` status.
 - Current graph output is an evidence-preserving record format, not a NetworkX query implementation.
 - Source snapshots use one chunk per referenced source file. Embeddings, retrieval, and answering are future milestones.
-- Namespaces, field/constructor use, cycles fixture coverage, capability probing, explicit cancellation messages, and full extractor failure contracts remain unfinished.
+- Dependency edges link the owning type to an indexed type: `field_use` covers declared field types; `constructor_use` covers constructor parameter types and explicit or target-typed object creation. Each edge cites the type syntax or creation expression. External types are omitted; unresolved types remain diagnostics.
+- Dependency extraction currently covers directly indexed named types. Array elements, generic type arguments, primary-constructor parameters, and constructor initializers are not traversed.
+- Namespaces, cycles fixture coverage, capability probing, explicit cancellation messages, and full extractor failure contracts remain unfinished.
 - Source files should remain unchanged during indexing. SDK, project imports, and external dependency changes are not yet captured in the source content hash.
 
 Next milestone: complete extractor coverage, then add bounded NetworkX graph queries.

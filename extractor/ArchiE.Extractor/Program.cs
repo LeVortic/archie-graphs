@@ -104,6 +104,29 @@ try
                 Edge(symbol, target, target?.TypeKind == TypeKind.Interface ? "implements" : "inherits", parent.Type);
             }
         }
+        foreach (var field in syntax.DescendantNodes().OfType<FieldDeclarationSyntax>())
+        {
+            var owner = (model.GetDeclaredSymbol(field.Declaration.Variables[0], token) as IFieldSymbol)?.ContainingType;
+            Edge(owner, model.GetTypeInfo(field.Declaration.Type, token).Type, "field_use", field.Declaration.Type);
+        }
+        foreach (var constructor in syntax.DescendantNodes().OfType<ConstructorDeclarationSyntax>())
+        {
+            var owner = model.GetDeclaredSymbol(constructor, token)?.ContainingType;
+            foreach (var parameter in constructor.ParameterList.Parameters)
+                if (parameter.Type is not null)
+                    Edge(owner, model.GetTypeInfo(parameter.Type, token).Type, "constructor_use", parameter.Type);
+        }
+        foreach (var creation in syntax.DescendantNodes().OfType<BaseObjectCreationExpressionSyntax>())
+        {
+            var constructor = model.GetSymbolInfo(creation, token).Symbol as IMethodSymbol;
+            if (constructor is null)
+            {
+                Diagnostic("UNRESOLVED_CONSTRUCTOR", "Unresolved constructor in " + Relative(creation.SyntaxTree.FilePath));
+                continue;
+            }
+            var owner = model.GetEnclosingSymbol(creation.SpanStart, token)?.ContainingType;
+            Edge(owner, constructor.ContainingType, "constructor_use", creation);
+        }
         foreach (var call in syntax.DescendantNodes().OfType<InvocationExpressionSyntax>())
         {
             var method = model.GetSymbolInfo(call, token).Symbol as IMethodSymbol;
@@ -126,7 +149,7 @@ try
     var result = new {
         schema_version = "archie.extractor-result.v1", schema_revision = 1,
         extractor = new { id = "roslyn", version = "0.1.0", interface_version = "archie.extractor-interface.v1",
-            capabilities = new[] { "types", "methods", "inherits", "implements", "calls" } },
+            capabilities = new[] { "types", "methods", "inherits", "implements", "calls", "field_use", "constructor_use" } },
         input = new { path = input, content_hash = "sha256:" + Convert.ToHexStringLower(hash.GetHashAndReset()) },
         status = diagnostics.Count == 0 ? "succeeded" : "partial",
         projects = projects.Select(p => new { id = ProjectId(p), name = p.Name, path = Relative(p.FilePath!) }),

@@ -2,7 +2,7 @@
 
 ## Implementation checkpoint — 2026-10-18
 
-The first indexing slice now includes an editable Python CLI, a Roslyn adapter, a buildable two-project fixture, contract and source-reference validation, atomic publication, and preserved failure manifests. Supported extraction covers types, methods, inheritance, interfaces, and resolved method calls. Integration tests compare repeated output and verify a cross-project call.
+The first indexing slice now includes an editable Python CLI, a Roslyn adapter, a buildable two-project fixture, contract and source-reference validation, atomic publication, and preserved failure manifests. Supported extraction covers types, methods, inheritance, interfaces, resolved method calls, declared field types, constructor parameter types, and explicit or target-typed object creation. Integration tests compare repeated output, verify cross-project dependencies and exact evidence spans, and reject unresolved dependencies as edges.
 
 Phase 1 is partially complete. Phase 2 still needs full symbol/relationship coverage, probe/cancel contracts, capability negotiation, and broader failure fixtures. Graph query operations, retrieval, and model answering have not been implemented. See README.md for commands and current limits. Phase 0 research/model decisions remain open.
 
