@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "archie-graphs"
 version = "0.1.0"
 requires-python = ">=3.11"
-dependencies = ["jsonschema>=4.23,<5"]
+dependencies = ["jsonschema>=4.23,<5", "networkx>=3.4,<4"]
 
 [project.scripts]
 archie = "archie.cli:main"

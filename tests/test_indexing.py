@@ -7,6 +7,7 @@ import pytest
 from archie.application import index_solution
 from archie.cli import ASSEMBLY, RoslynExtractor, main
 from archie.contracts import validate_index
+from archie.graph import load_graph, query_dependencies
 
 ROOT = Path(__file__).parents[1]
 
@@ -112,6 +113,11 @@ def test_roslyn_fixture_end_to_end(tmp_path):
         ("constructor_use", "Controller", "Service", 10),
         ("constructor_use", "Controller", "Service", 11),
     }
+    graph = load_graph(first)
+    controller = next(n["id"] for n in a["nodes"] if n["name"] == "Controller" and n["kind"] == "type")
+    service = next(n["id"] for n in a["nodes"] if n["name"] == "IService")
+    assert {e["id"] for e in query_dependencies(graph, controller)["edges"]} == {e["id"] for e in dependencies}
+    assert {e["kind"] for e in query_dependencies(graph, service, reverse=True)["edges"]} == {"field_use", "constructor_use", "implements"}
     lines = (ROOT / "fixtures/csharp/App/Controller.cs").read_text().splitlines()
     for edge in dependencies:
         assert by_id[edge["from"]]["project_id"] != by_id[edge["to"]]["project_id"]

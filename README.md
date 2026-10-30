@@ -46,11 +46,26 @@ Published indexes contain `manifest.json`, `extractor.json`, `graph.json`, `sour
 - Build or restore target projects before indexing so Roslyn can resolve references.
 - Source and referenced projects must be inside the directory containing the input solution or project. Prefer a solution at the repository root for sibling projects.
 - Relationships to external framework symbols are omitted. Partial extraction retains diagnostics and can produce a complete index of the validated subset; inspect `extractor.json` status.
-- Current graph output is an evidence-preserving record format, not a NetworkX query implementation.
+- Published graph records remain JSON. The query layer builds a NetworkX `MultiDiGraph` from the validated extractor artifact, preserving parallel relationships and source evidence.
 - Source snapshots use one chunk per referenced source file. Embeddings, retrieval, and answering are future milestones.
 - Dependency edges link the owning type to an indexed type: `field_use` covers declared field types; `constructor_use` covers constructor parameter types and explicit or target-typed object creation. Each edge cites the type syntax or creation expression. External types are omitted; unresolved types remain diagnostics.
 - Dependency extraction currently covers directly indexed named types. Array elements, generic type arguments, primary-constructor parameters, and constructor initializers are not traversed.
 - Namespaces, cycles fixture coverage, capability probing, explicit cancellation messages, and full extractor failure contracts remain unfinished.
 - Source files should remain unchanged during indexing. SDK, project imports, and external dependency changes are not yet captured in the source content hash.
 
-Next milestone: complete extractor coverage, then add bounded NetworkX graph queries.
+Next graph milestone: bounded neighborhoods, dependency paths, and cycle queries.
+
+## Query direct dependencies
+
+First index the fixture, then use the published directory printed by `archie index`:
+
+```sh
+.venv/bin/archie inspect dependencies artifacts/index/INDEX_DIRECTORY 'type:App%2FApp.csproj:T%3AFixture.App.Controller'
+.venv/bin/archie inspect dependents artifacts/index/INDEX_DIRECTORY 'type:Core%2FCore.csproj:T%3AFixture.Core.IService' --limit 10
+```
+
+Replace `INDEX_DIRECTORY` with the actual directory name. Exact symbol IDs are available in that index's `extractor.json`; quoted IDs above apply to the supplied fixture.
+
+`dependencies` returns outgoing relationships; `dependents` returns incoming relationships while preserving their original `from` and `to` endpoints. Both inspect one hop over all relationship kinds, without aggregating method calls into type-level dependencies. Results include nodes, original edges and citations, extractor identity, extraction status, diagnostics, and a `truncated` flag. The edge limit defaults to 100 and accepts 1–1000; at most limit + 1 nodes are returned. Results are deterministic for identical input regardless of artifact array ordering.
+
+Queries accept only complete published manifests, validate the extractor contract and source evidence, and reject unknown symbol IDs. Partial extraction remains queryable and is labeled in results. Original source files must remain available and unchanged for evidence validation; queries do not rerun extraction or verify source content hashes against current disk contents. Loading and validating the index is not bounded by the query result limit. Queries do not modify published indexes.
