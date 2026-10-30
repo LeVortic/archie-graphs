@@ -1,10 +1,10 @@
 # ArchiE Graphs Development Plan
 
-## Implementation checkpoint — 2026-10-18
+## Implementation checkpoint — 2026-10-30
 
 The first indexing slice now includes an editable Python CLI, a Roslyn adapter, a buildable two-project fixture, contract and source-reference validation, atomic publication, and preserved failure manifests. Supported extraction covers types, methods, inheritance, interfaces, resolved method calls, declared field types, constructor parameter types, and explicit or target-typed object creation. Integration tests compare repeated output, verify cross-project dependencies and exact evidence spans, and reject unresolved dependencies as edges.
 
-Phase 1 is partially complete. Phase 2 still needs full symbol/relationship coverage, probe/cancel contracts, capability negotiation, and broader failure fixtures. The first graph query slice provides validated NetworkX loading and bounded one-hop dependency/dependent CLI queries with source evidence and truncation reporting. Multi-hop paths, neighborhoods, cycles, retrieval, and model answering remain unimplemented. See README.md for commands and current limits. Phase 0 research/model decisions remain open.
+Phase 1 is partially complete. Phase 2 still needs full symbol/relationship coverage, probe/cancel contracts, capability negotiation, and broader failure fixtures. The graph query milestone now provides validated NetworkX loading, direct/reverse dependencies, breadth-first neighborhoods, directed dependency paths, and cycle queries. Results retain source evidence and report exhausted node, edge, result-count, and search-work limits. A C# cycle fixture and graph tests cover multi-hop evidence, parallel relationships, self-loops, depth bounds, and deterministic results. Retrieval and model answering remain unimplemented. See README.md for commands and current limits. Phase 0 research/model decisions remain open.
 
 ## 0. Define the baseline
 
@@ -52,6 +52,8 @@ Phase 1 is partially complete. Phase 2 still needs full symbol/relationship cove
 7. Validate node/edge cross-references before publishing the graph artifact.
 
 **Gate:** Graph tests cover direct and reverse queries, multiple edge types, path bounds, cycles, missing nodes, and cross-project identity.
+
+**Checkpoint:** Phase 3 query gate passes on the supplied fixtures; remaining extractor coverage and protocol work is tracked in Phase 2.
 
 ## 4. Add source retrieval
 

@@ -50,10 +50,10 @@ Published indexes contain `manifest.json`, `extractor.json`, `graph.json`, `sour
 - Source snapshots use one chunk per referenced source file. Embeddings, retrieval, and answering are future milestones.
 - Dependency edges link the owning type to an indexed type: `field_use` covers declared field types; `constructor_use` covers constructor parameter types and explicit or target-typed object creation. Each edge cites the type syntax or creation expression. External types are omitted; unresolved types remain diagnostics.
 - Dependency extraction currently covers directly indexed named types. Array elements, generic type arguments, primary-constructor parameters, and constructor initializers are not traversed.
-- Namespaces, cycles fixture coverage, capability probing, explicit cancellation messages, and full extractor failure contracts remain unfinished.
+- Namespaces, capability probing, explicit cancellation messages, and full extractor failure contracts remain unfinished.
 - Source files should remain unchanged during indexing. SDK, project imports, and external dependency changes are not yet captured in the source content hash.
 
-Next graph milestone: bounded neighborhoods, dependency paths, and cycle queries.
+Graph query milestone complete: direct/reverse dependencies, bounded neighborhoods, dependency paths, and cycle queries. Next development milestone: source retrieval.
 
 ## Query direct dependencies
 
@@ -69,3 +69,33 @@ Replace `INDEX_DIRECTORY` with the actual directory name. Exact symbol IDs are a
 `dependencies` returns outgoing relationships; `dependents` returns incoming relationships while preserving their original `from` and `to` endpoints. Both inspect one hop over all relationship kinds, without aggregating method calls into type-level dependencies. Results include nodes, original edges and citations, extractor identity, extraction status, diagnostics, and a `truncated` flag. The edge limit defaults to 100 and accepts 1–1000; at most limit + 1 nodes are returned. Results are deterministic for identical input regardless of artifact array ordering.
 
 Queries accept only complete published manifests, validate the extractor contract and source evidence, and reject unknown symbol IDs. Partial extraction remains queryable and is labeled in results. Original source files must remain available and unchanged for evidence validation; queries do not rerun extraction or verify source content hashes against current disk contents. Loading and validating the index is not bounded by the query result limit. Queries do not modify published indexes.
+
+## Multi-hop graph queries
+
+Use the same published index directory and exact symbol IDs:
+
+```sh
+.venv/bin/archie inspect neighborhood artifacts/index/INDEX_DIRECTORY 'type:App%2FApp.csproj:T%3AFixture.App.Controller' --max-depth 2
+.venv/bin/archie inspect paths artifacts/index/INDEX_DIRECTORY 'type:App%2FApp.csproj:T%3AFixture.App.Controller' 'type:Core%2FCore.csproj:T%3AFixture.Core.BaseService' --max-depth 3 --max-paths 10
+.venv/bin/archie inspect cycles artifacts/index/INDEX_DIRECTORY --max-depth 3 --max-paths 10
+```
+
+Re-index the fixture to include `Core/Cycles.cs`. It supplies a two-type field dependency cycle. No model runtime or new dependency is needed.
+
+- `neighborhood` follows outgoing relationships breadth first; `--reverse` follows incoming relationships without reversing stored evidence. It returns edges expanded from nodes strictly inside the depth boundary, rather than every edge between returned nodes.
+- `paths` returns directed simple paths between two symbols. Nodes cannot repeat within a path. Parallel relationships produce distinct edge paths. A query from a symbol to itself returns one empty path; use `cycles` for non-empty loops.
+- `cycles` searches the whole index for directed simple cycles, including self-loops. Cycles begin at their smallest symbol ID, avoiding duplicate rotations. Parallel relationships produce distinct edge cycles. This is symbol-level evidence; method calls and type dependencies are not combined into inferred type-level paths.
+
+New query limits:
+
+| Option | Default | Allowed | Meaning |
+| --- | --- | --- | --- |
+| `--max-depth` | 2 for neighborhoods; 3 otherwise | 1–10 | Maximum edges per traversal path |
+| `--max-nodes` | 100 | 1–1,000 | Maximum distinct nodes visited during search |
+| `--max-edges` | 1,000 | 1–1,000 | Maximum neighborhood edges |
+| `--max-paths` | 10 | 1–100 | Maximum returned paths or cycles |
+| `--max-steps` | 10,000 | 1–100,000 | Maximum examined edges across path/cycle search, including dead ends |
+
+Depth defines the requested search scope: longer paths are excluded and do not alone set `truncated`. Other exhausted limits produce `truncated: true` and `truncation_reasons`. Path/cycle result limits use one additional match to detect truncation; the node and step budgets still apply to that check. A truncated empty result does not prove no path or cycle exists. Traversal order is deterministic, but path results are not ranked by shortest length.
+
+`paths` and `cycles` contain ordered lists of edge IDs. Their `edges` array holds each referenced edge once, with original source spans, kind, status, and confidence. `nodes` holds those endpoints (plus the source for a path query). All new results retain extractor provenance, extraction status, and diagnostics. At most 1,000 distinct edges can be returned by paths/cycles (100 paths × 10 edges). Limits apply after full index loading and validation; they do not cap input artifact size.

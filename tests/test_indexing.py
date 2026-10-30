@@ -7,7 +7,7 @@ import pytest
 from archie.application import index_solution
 from archie.cli import ASSEMBLY, RoslynExtractor, main
 from archie.contracts import validate_index
-from archie.graph import load_graph, query_dependencies
+from archie.graph import load_graph, query_dependencies, query_neighborhood, query_paths, query_cycles
 
 ROOT = Path(__file__).parents[1]
 
@@ -105,7 +105,8 @@ def test_roslyn_fixture_end_to_end(tmp_path):
     assert by_id[call["from"]]["project_id"] != by_id[call["to"]]["project_id"]
     assert call["source"]["start_line"] == 9
     assert {"field_use", "constructor_use"} <= set(a["extractor"]["capabilities"])
-    dependencies = [e for e in a["edges"] if e["kind"] in {"field_use", "constructor_use"}]
+    dependencies = [e for e in a["edges"] if e["kind"] in {"field_use", "constructor_use"}
+                    and by_id[e["from"]]["name"] == "Controller"]
     assert {(e["kind"], by_id[e["from"]]["name"], by_id[e["to"]]["name"],
              e["source"]["start_line"]) for e in dependencies} == {
         ("field_use", "Controller", "IService", 7),
@@ -118,6 +119,15 @@ def test_roslyn_fixture_end_to_end(tmp_path):
     service = next(n["id"] for n in a["nodes"] if n["name"] == "IService")
     assert {e["id"] for e in query_dependencies(graph, controller)["edges"]} == {e["id"] for e in dependencies}
     assert {e["kind"] for e in query_dependencies(graph, service, reverse=True)["edges"]} == {"field_use", "constructor_use", "implements"}
+    base = next(n["id"] for n in a["nodes"] if n["name"] == "BaseService")
+    paths = query_paths(graph, controller, base)
+    assert len(paths["paths"]) == 2 and all(len(path) == 2 for path in paths["paths"])
+    assert not paths["truncated"]
+    assert base in {n["id"] for n in query_neighborhood(graph, controller)["nodes"]}
+    cycles = query_cycles(graph)
+    assert len(cycles["cycles"]) == 1 and not cycles["truncated"]
+    assert {n["name"] for n in cycles["nodes"]} == {"CycleA", "CycleB"}
+    assert all(e["source"]["path"] == "Core/Cycles.cs" for e in cycles["edges"])
     lines = (ROOT / "fixtures/csharp/App/Controller.cs").read_text().splitlines()
     for edge in dependencies:
         assert by_id[edge["from"]]["project_id"] != by_id[edge["to"]]["project_id"]
