@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Protocol
 
 from .contracts import validate, validate_index
+from .retrieval import chunk_source, build_embeddings
 
 
 class Extractor(Protocol):
@@ -19,7 +20,7 @@ def write_json(path, value):
     path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
-def index_solution(path, output, extractor: Extractor):
+def index_solution(path, output, extractor: Extractor, *, embedder=None):
     path = Path(path).resolve(strict=True)
     if path.suffix not in {".sln", ".csproj"}:
         raise ValueError("Input must be a .sln or .csproj file")
@@ -51,17 +52,32 @@ def index_solution(path, output, extractor: Extractor):
             raise ValueError("Extractor identity does not match the selected adapter")
         if result["status"] == "failed":
             raise ValueError("Extractor failed; inspect extractor.json diagnostics")
-        # shortcut: persist graph records until bounded NetworkX queries are added.
         write_json(staging / "graph.json", {"schema_version": "archie.graph.v1",
                    "nodes": result["nodes"], "edges": result["edges"],
                    "extractor": result["extractor"]})
         paths = sorted({item["source"]["path"] for item in result["nodes"] + result["edges"] if "source" in item})
+        chunks = []
+        skipped = []
+        for relative in paths:
+            text = (root / relative).read_text(encoding="utf-8-sig")
+            source_chunks = list(chunk_source(relative, text, embedder))
+            if not source_chunks:
+                skipped.append(relative)
+            for chunk in source_chunks:
+                validate("source-chunk", chunk)
+            chunks.extend(source_chunks)
         with (staging / "source-chunks.jsonl").open("w", encoding="utf-8") as stream:
-            for relative in paths:
-                text = (root / relative).read_text(encoding="utf-8-sig")
-                # shortcut: one chunk per file until retrieval introduces bounded chunks.
-                stream.write(json.dumps({"path": relative, "start_line": 1,
-                                        "end_line": len(text.splitlines()), "text": text}) + "\n")
+            for chunk in chunks:
+                stream.write(json.dumps(chunk) + "\n")
+        for relative in skipped:
+            result["diagnostics"].append({"code": "EMPTY_SOURCE", "severity": "info",
+                "message": f"Skipped empty source: {relative}", "component": "retrieval", "recoverable": True})
+        if embedder is not None:
+            embeddings = build_embeddings(chunks, embedder, output / ".embedding-cache.sqlite3",
+                                          result["input"]["content_hash"],
+                                          extraction_status=result["status"], diagnostics=result["diagnostics"])
+            write_json(staging / "embeddings.json", embeddings)
+            manifest["artifacts"]["embeddings"] = "embeddings.json"
         write_json(staging / "diagnostics.json", result["diagnostics"])
         manifest["status"] = "complete"
         validate("index-manifest", manifest)

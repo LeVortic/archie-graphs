@@ -3,11 +3,14 @@ import argparse
 import json
 import subprocess
 import sys
+import sqlite3
 from pathlib import Path
 
 from jsonschema import ValidationError
 
 from .application import index_solution
+from .embeddings import SentenceEmbedder
+from .retrieval import load_source_index, retrieve
 from .graph import load_graph, query_dependencies, query_neighborhood, query_paths, query_cycles
 
 PROJECT = Path(__file__).resolve().parents[1] / "extractor/ArchiE.Extractor/ArchiE.Extractor.csproj"
@@ -36,6 +39,13 @@ def main(argv=None):
     index = commands.add_parser("index", help="Index a local C# solution or project")
     index.add_argument("path")
     index.add_argument("--output", default="artifacts/index")
+    index.add_argument("--embed", action="store_true", help="Generate local source embeddings")
+    index.add_argument("--device", choices=("auto", "cpu", "cuda"), default="auto")
+    retrieval = commands.add_parser("retrieve", help="Find source chunks using local embeddings")
+    retrieval.add_argument("index", help="Published index directory")
+    retrieval.add_argument("question")
+    retrieval.add_argument("--top-k", type=int, default=5)
+    retrieval.add_argument("--device", choices=("auto", "cpu", "cuda"), default="auto")
     inspect = commands.add_parser("inspect", help="Query a published index")
     queries = inspect.add_subparsers(dest="query", required=True)
     for name in ("dependencies", "dependents"):
@@ -61,8 +71,15 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         if args.command == "index":
-            destination = index_solution(args.path, args.output, RoslynExtractor())
+            embedder = (SentenceEmbedder(device=args.device, cache_dir=Path(args.output) / ".models")
+                        if args.embed else None)
+            destination = index_solution(args.path, args.output, RoslynExtractor(), embedder=embedder)
             print(json.dumps({"status": "complete", "path": str(destination)}))
+        elif args.command == "retrieve":
+            _, embeddings, _, _ = load_source_index(args.index)
+            embedder = SentenceEmbedder(device=args.device, cache_dir=Path(args.index).resolve().parent / ".models",
+                                        revision=embeddings["model"]["revision"])
+            print(json.dumps(retrieve(args.index, args.question, embedder, top_k=args.top_k)))
         else:
             graph = load_graph(args.index)
             if args.query in {"dependencies", "dependents"}:
@@ -79,6 +96,6 @@ def main(argv=None):
                           else query_cycles(graph, **bounds))
             print(json.dumps(result))
         return 0
-    except (ValueError, OSError, subprocess.SubprocessError, ValidationError) as error:
+    except (ValueError, OSError, subprocess.SubprocessError, ValidationError, sqlite3.Error) as error:
         print(json.dumps({"status": "failed", "error": str(error)}), file=sys.stderr)
         return 1

@@ -8,6 +8,9 @@ version = "0.1.0"
 requires-python = ">=3.11"
 dependencies = ["jsonschema>=4.23,<5", "networkx>=3.4,<4"]
 
+[project.optional-dependencies]
+retrieval = ["sentence-transformers>=5,<6"]
+
 [project.scripts]
 archie = "archie.cli:main"
 

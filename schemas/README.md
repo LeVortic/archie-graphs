@@ -7,6 +7,8 @@ Schemas use JSON Schema Draft 2020-12. `$id` values use the repository URL and i
 - `extractor-request.schema.json`: request sent to any extractor adapter.
 - `extractor-result.schema.json`: common result returned by any extractor adapter.
 - `index-manifest.schema.json`: atomic index publication and artifact identity.
+- `source-chunk.schema.json`: deterministic source text, content identity, and inclusive UTF-16 source spans.
+- `embeddings.schema.json`: local model identity, portable vectors, cache counters, and extraction diagnostics.
 - `evidence-ref.schema.json`: source span, graph edge, or graph path evidence.
 - `answer-record.schema.json`: answer, claims, evidence, model run, and failure state.
 - `benchmark-question.schema.json`: reviewed question and fact annotations.

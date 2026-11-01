@@ -91,3 +91,25 @@ The experiment runner uses the same model, generation settings, question set, an
 - Some graph paths may be truncated.
 - Results are more defensible.
 - Context assembly needs deterministic prioritization.
+
+
+## ADR-006: Portable local source embeddings with optional CUDA
+
+Status: Accepted
+
+### Context
+
+The development machine has an RTX 5080 Laptop GPU, while other study machines may have only a CPU. Embedding generation should use available hardware without tying published indexes to CUDA or a hosted service.
+
+### Decision
+
+Use Sentence Transformers with `sentence-transformers/all-MiniLM-L6-v2`, selecting CUDA automatically when available and allowing explicit CPU/CUDA selection. Record the resolved model commit, runtime versions, dimensions, normalization, and token budget. The device is run metadata rather than embedding identity. Token-aware source chunks retain deterministic content IDs and exact source spans. Cache vectors in SQLite by model identity and chunk content; publish validated JSON vectors atomically with the index. Use exact local cosine search for the current study size.
+
+### Consequences
+
+- GPU generation and CPU querying use the same artifact format and model identity.
+- First use downloads weights and optional dependencies; inference never sends repository text remotely.
+- Runtime/model changes invalidate the cache; device-only changes retain reuse with minor numerical differences possible.
+- Source snapshots allow retrieval without the original checkout.
+- Linear in-memory search is intentionally limited to local study indexes; a larger corpus may need a dedicated vector index.
+- This general-purpose model is an initial retrieval baseline; benchmark quality still needs evaluation before research claims.

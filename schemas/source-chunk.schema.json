@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/LeVortic/archie-graphs/schemas/source-chunk.schema.json",
+  "title": "Source chunk",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "id",
+    "path",
+    "start_line",
+    "start_column",
+    "end_line",
+    "end_column",
+    "text",
+    "content_hash",
+    "token_estimate"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "archie.source-chunk.v1"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^chunk:[a-f0-9]{64}$"
+    },
+    "path": {
+      "$ref": "common.schema.json#/$defs/relativePath"
+    },
+    "start_line": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "start_column": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "end_line": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "end_column": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "text": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000
+    },
+    "content_hash": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "token_estimate": {
+      "type": "integer",
+      "minimum": 1
+    }
+  }
+}
