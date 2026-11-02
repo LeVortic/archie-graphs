@@ -78,7 +78,7 @@ try
     }
     string? Find(ISymbol? symbol)
     {
-        if (symbol is null) return null;
+        if (symbol is not INamedTypeSymbol and not IMethodSymbol) return null;
         symbol = symbol.OriginalDefinition;
         return symbols.TryGetValue(symbol, out var id) ? id : symbolIds.GetValueOrDefault(Key(symbol));
     }

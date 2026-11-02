@@ -164,3 +164,20 @@ def test_unresolved_dependencies_remain_diagnostics(tmp_path):
     assert result["status"] == "partial"
     assert {"UNRESOLVED_SYMBOL", "UNRESOLVED_CONSTRUCTOR"} <= {d["code"] for d in result["diagnostics"]}
     assert result["edges"] == []
+
+
+@pytest.mark.skipif(not ASSEMBLY.is_file(), reason="Build the Roslyn extractor before integration tests")
+@pytest.mark.parametrize("field_type", ["Target[]", "Target[,]", "dynamic"])
+def test_unindexed_field_types_do_not_crash_symbol_lookup(tmp_path, field_type):
+    project = tmp_path / "Types.csproj"
+    project.write_text((ROOT / "fixtures/csharp/Core/Core.csproj").read_text())
+    (tmp_path / "Types.cs").write_text(
+        f"public class Target {{ }} public class User {{ private {field_type} items; "
+        f"private Target direct; public User({field_type} items) {{ }} }}\n")
+    result = RoslynExtractor().extract({"schema_version": "archie.extractor-request.v1",
+        "input": {"path": str(project)}, "options": {"timeout_seconds": 120}})
+    validate_index(result, tmp_path)
+    assert len(result["edges"]) == 1
+    assert result["edges"][0]["kind"] == "field_use"
+    nodes = {node["id"]: node for node in result["nodes"]}
+    assert nodes[result["edges"][0]["to"]]["name"] == "Target"

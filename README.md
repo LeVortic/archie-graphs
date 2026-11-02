@@ -47,13 +47,13 @@ Published indexes contain `manifest.json`, `extractor.json`, `graph.json`, `sour
 - Source and referenced projects must be inside the directory containing the input solution or project. Prefer a solution at the repository root for sibling projects.
 - Relationships to external framework symbols are omitted. Partial extraction retains diagnostics and can produce a complete index of the validated subset; inspect `extractor.json` status.
 - Published graph records remain JSON. The query layer builds a NetworkX `MultiDiGraph` from the validated extractor artifact, preserving parallel relationships and source evidence.
-- Source snapshots use deterministic chunks of up to 40 lines and 2,000 characters, with exact UTF-16 source spans. Embedding-enabled indexes also split to the model token budget. Answer generation remains a future milestone.
+- Source snapshots use deterministic chunks of up to 40 lines and 2,000 characters, with exact UTF-16 source spans. Embedding-enabled indexes also split to the model token budget. Source-only local answering is available; graph-augmented answering remains unfinished.
 - Dependency edges link the owning type to an indexed type: `field_use` covers declared field types; `constructor_use` covers constructor parameter types and explicit or target-typed object creation. Each edge cites the type syntax or creation expression. External types are omitted; unresolved types remain diagnostics.
 - Dependency extraction currently covers directly indexed named types. Array elements, generic type arguments, primary-constructor parameters, and constructor initializers are not traversed.
 - Namespaces, capability probing, explicit cancellation messages, and full extractor failure contracts remain unfinished.
 - Source files should remain unchanged during indexing. SDK, project imports, and external dependency changes are not yet captured in the source content hash.
 
-Graph query milestone complete: direct/reverse dependencies, bounded neighborhoods, dependency paths, and cycle queries. Source retrieval is implemented; next development milestone: local-model answering.
+Graph query milestone complete: direct/reverse dependencies, bounded neighborhoods, dependency paths, and cycle queries. Source retrieval and source-only local answering are implemented; next slice: graph-augmented answering.
 
 ## Query direct dependencies
 
@@ -133,4 +133,35 @@ The adapter uses `sentence-transformers/all-MiniLM-L6-v2` (384 dimensions, 256-t
 
 Published retrieval indexes are self-contained source snapshots. They remain queryable if the source checkout changes or moves; no live source files are read during retrieval. Existing graph queries still validate against the original checkout. Old indexes without embeddings need re-indexing with `--embed`. Source coverage remains limited to files referenced by extracted nodes/edges. Chunk IDs now include content and position; adding earlier text can shift later chunk boundaries. The reusable cache follows exact chunk text, so shifted but identical text can still be reused. Line endings are normalized to LF; columns remain UTF-16 code units.
 
-This milestone uses exact cosine search over JSON vectors in memory. It adds no vector service, approximate search, or answer generation. Full index loading and linear scans are suitable for the current local study; larger corpora may need another search implementation. Model weights must be available locally for fully offline use (Hugging Face supports `HF_HUB_OFFLINE=1`). Model/runtime identity changes invalidate reuse; changing only CPU versus GPU does not.
+This milestone uses exact cosine search over JSON vectors in memory. Retrieval adds no vector service or approximate search; answering is a separate command. Full index loading and linear scans are suitable for the current local study; larger corpora may need another search implementation. Model weights must be available locally for fully offline use (Hugging Face supports `HF_HUB_OFFLINE=1`). Model/runtime identity changes invalidate reuse; changing only CPU versus GPU does not.
+
+## Local answers with Qwen3-4B
+
+Install the retrieval and answering extras; they use PyTorch/Transformers plus a JSON-schema token constraint library, without an additional runtime service.
+
+```sh
+.venv/bin/python -m pip install -e '.[retrieval,answering]'
+``` The default language model is `Qwen/Qwen3-4B-Instruct-2507`, pinned to commit `cdbee75f17c01a7cc42f958dc650907174af0554`. First use downloads roughly 8 GB of weights into `artifacts/models`. CUDA uses bfloat16; CPU uses float32 and needs substantially more RAM. CPU generation is supported but has not been benchmarked on this machine.
+
+```sh
+.venv/bin/archie ask artifacts/index/INDEX_DIRECTORY 'How does Controller use IService?' --mode source --device auto --format text
+```
+
+`INDEX_DIRECTORY` must be an embedding-enabled index. JSON is the default output; `--format text` prints a readable answer and cited file/line/column references. Each invocation retrieves source, assembles whole excerpts within the Qwen-token context budget, and generates claims in a separate local process. Repository content stays local. The embedding model and language model have different tokenizers; context limits use Qwen's actual chat-template token count, including instructions and the question.
+
+Defaults are `--top-k 5`, `--context-budget 4096`, `--max-new-tokens 1024`, and `--timeout 180`. Context budgets accept 1–16,384 tokens, output limits 1–4,096 tokens, and deadlines up to 3,600 seconds. The generation deadline covers worker startup, weight loading/downloading, and inference. The subprocess is killed and waited for on timeout; tokenizers initialize in the parent before that deadline. Increase `--timeout` on first use if downloading weights, or pre-download the model. `HF_HUB_OFFLINE=1` works after weights and tokenizers are cached. Each call reloads the language model; a persistent worker is deferred until repeated-call latency warrants it.
+
+Schema-constrained decoding filters generated tokens to produce a JSON object containing an abstention flag and claims with supplied evidence IDs. The runtime is also given the exact allowed citation IDs; the completed response is independently validated afterward. Unknown citations, missing citations, invalid JSON, and output-length stops produce a failed answer record and exit code 1. There is no silent response repair or automatic retry. If no evidence fits, generation is skipped and the result explicitly reports insufficient evidence. A model can also abstain when excerpts do not support an answer. Source text is treated as untrusted data in the prompt; this instruction is not a guarantee against prompt injection.
+
+Successful JSON records include the question/index identity, selected chunk IDs, source evidence, raw model response, exact model revision, runtime/device/dtype, input/output token counts, latency, and context truncation. Failed generation records retain available evidence and raw output for diagnosis and are printed to stderr. Errors before answer assembly use the normal CLI failure JSON. Context truncation means some retrieved excerpts were omitted; top-k retrieval itself is not a completeness guarantee.
+
+Citation IDs and source spans are validated against the excerpts supplied to the model. This does not establish that a claim follows from a cited passage, so generated claims have `support_status: uncertain`. They are not automatically labeled supported. Abstention also does not prove a feature is absent from the entire repository. Generation uses greedy decoding (`do_sample=False`); numerical differences across hardware/runtime versions can still affect output. Graph mode and benchmark evaluation remain unfinished.
+
+Place the project you want to index inside `ignore/` (for example, `ignore/MyProject/`), then index its project file and query the generated index:
+
+```sh
+.venv/bin/archie index ignore/MyProject/MyProject.csproj --output artifacts/myproject-qwen --embed --device cuda
+.venv/bin/archie ask artifacts/myproject-qwen/INDEX_DIRECTORY 'How is execution initialized and when does its main loop stop?' --top-k 8 --device cuda --format text
+```
+
+Re-use the published directory printed by indexing, replacing `INDEX_DIRECTORY` with that directory name. Preserve any extraction diagnostics reported for your project. Array/dynamic field types are omitted from dependency edges rather than crashing symbol lookup; their source text remains available to retrieval.

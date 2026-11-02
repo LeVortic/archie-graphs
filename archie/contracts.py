@@ -1,5 +1,6 @@
 """Validate interchange records and source-backed cross-references."""
 import json
+import math
 from pathlib import Path, PurePosixPath
 
 from jsonschema import Draft202012Validator, FormatChecker
@@ -51,3 +52,10 @@ def validate_index(value, root):
             width = len(lines[line - 1].encode("utf-16-le")) // 2
             if column > max(1, width):
                 raise ValueError("Invalid source column")
+
+
+def validate_generation_limits(max_new_tokens, timeout_seconds):
+    if type(max_new_tokens) is not int or not 1 <= max_new_tokens <= 4096:
+        raise ValueError("max_new_tokens must be between 1 and 4096")
+    if type(timeout_seconds) not in {int, float} or not math.isfinite(timeout_seconds) or not 0 < timeout_seconds <= 3600:
+        raise ValueError("timeout_seconds must be positive and at most 3600")

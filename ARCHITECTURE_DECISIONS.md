@@ -113,3 +113,25 @@ Use Sentence Transformers with `sentence-transformers/all-MiniLM-L6-v2`, selecti
 - Source snapshots allow retrieval without the original checkout.
 - Linear in-memory search is intentionally limited to local study indexes; a larger corpus may need a dedicated vector index.
 - This general-purpose model is an initial retrieval baseline; benchmark quality still needs evaluation before research claims.
+
+
+## ADR-007: Pinned Qwen3-4B for source-only local answering
+
+Status: Accepted
+
+### Context
+
+The user selected Qwen3-4B and requested a real test against `ignore/MarkovJunior`. CUDA inference should use the existing RTX 5080 while keeping a CPU execution path. Generated architectural claims must not be accepted solely because they mention a source citation.
+
+### Decision
+
+Use `Qwen/Qwen3-4B-Instruct-2507` at commit `cdbee75f17c01a7cc42f958dc650907174af0554` through installed Transformers/PyTorch. Run generation in a subprocess with a hard deadline and greedy decoding. Use bfloat16 on CUDA and float32 on CPU. Count prompt tokens using the model's chat template and select whole retrieved chunks within a fixed budget. Use LM Format Enforcer through its runtime-neutral API to constrain JSON generation and allowed citation IDs. Prompt instructions alone did not prevent malformed trailing tokens in the MarkovJunior test. Independently validate completed responses, require supplied evidence IDs, reject invalid/incomplete output, and allow abstention. Construct source evidence from validated index chunks, never from model-provided paths. Preserve raw model output and run metadata in answer records.
+
+### Consequences
+
+- No hosted inference or additional model server is needed.
+- Each generation reloads weights; isolation and cleanup take precedence over repeated-call latency for this slice.
+- Citation checks establish referential validity, not semantic support; generated claims remain `uncertain`.
+- Strict JSON failures remain visible and are not silently repaired or retried.
+- GPU and CPU use the same pinned weights but differ in memory demand and numerical behavior.
+- Source-only answering does not complete graph-augmented answering or research evaluation.

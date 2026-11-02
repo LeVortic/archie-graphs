@@ -10,7 +10,8 @@ Schemas use JSON Schema Draft 2020-12. `$id` values use the repository URL and i
 - `source-chunk.schema.json`: deterministic source text, content identity, and inclusive UTF-16 source spans.
 - `embeddings.schema.json`: local model identity, portable vectors, cache counters, and extraction diagnostics.
 - `evidence-ref.schema.json`: source span, graph edge, or graph path evidence.
-- `answer-record.schema.json`: answer, claims, evidence, model run, and failure state.
+- `answer-record.schema.json`: answer, claims, evidence, model run, and failure state; revision 2 adds question/index identity, selected chunk IDs, raw output, source diagnostics, and model revision/device/token/deadline metadata.
+- `model-response.schema.json`: strict generated abstention/claim payload with supplied evidence IDs.
 - `benchmark-question.schema.json`: reviewed question and fact annotations.
 - `experiment-record.schema.json`: reproducible paired source/graph evaluation.
 - `common.schema.json`: shared IDs, source spans, diagnostics, nodes, edges, and claims.
