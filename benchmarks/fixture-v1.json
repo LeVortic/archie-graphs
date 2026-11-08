@@ -1,0 +1,176 @@
+{
+  "schema_version": "archie.benchmark.v1",
+  "version": "fixture-development-v1",
+  "split": "development",
+  "research_question": "Does source-backed dependency-graph context improve factual correctness on multi-hop C# architecture questions, compared with source-only retrieval using the same local model and context ceiling?",
+  "source": {
+    "id": "fixture",
+    "content_hash": "sha256:450aba2d1f8f30230a7cda5eda6481632adabd6b9ca0515db80eadaccd4a1f7d",
+    "revision": "6879c6fc301ec3443184dca60daab5fe9467ce86",
+    "provenance_note": "Tracked fixture at this project revision; source hash freezes indexed source/project bytes."
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null
+  },
+  "questions": [
+    {
+      "schema_version": "archie.benchmark-question.v1",
+      "schema_revision": 2,
+      "id": "question:fixture-interface",
+      "question": "Which interface does Fixture.Core.Service implement?",
+      "expected_facts": [
+        {
+          "id": "fact:fixture-interface-1",
+          "text": "Fixture.Core.Service implements Fixture.Core.IService."
+        }
+      ],
+      "dependency_depth": 0,
+      "category": "local_fact",
+      "expected_action": "answer",
+      "acceptable_citations": [
+        "Core/Service.cs:3-7"
+      ],
+      "review_notes": ""
+    },
+    {
+      "schema_version": "archie.benchmark-question.v1",
+      "schema_revision": 2,
+      "id": "question:fixture-injection",
+      "question": "Which indexed type does Fixture.App.Controller receive in its constructor and store in its service field?",
+      "expected_facts": [
+        {
+          "id": "fact:fixture-injection-1",
+          "text": "Controller receives an IService constructor parameter."
+        },
+        {
+          "id": "fact:fixture-injection-2",
+          "text": "The service field has declared type IService."
+        }
+      ],
+      "dependency_depth": 1,
+      "category": "dependency",
+      "expected_action": "answer",
+      "acceptable_citations": [
+        "App/Controller.cs:7-8"
+      ],
+      "review_notes": ""
+    },
+    {
+      "schema_version": "archie.benchmark-question.v1",
+      "schema_revision": 2,
+      "id": "question:fixture-call",
+      "question": "What is the statically resolved target of the call in Fixture.App.Controller.Handle?",
+      "expected_facts": [
+        {
+          "id": "fact:fixture-call-1",
+          "text": "Controller.Handle calls the declared IService.Run method."
+        }
+      ],
+      "dependency_depth": 1,
+      "category": "dependency",
+      "expected_action": "answer",
+      "acceptable_citations": [
+        "App/Controller.cs:9-9",
+        "Core/Service.cs:3-7"
+      ],
+      "review_notes": "Do not require an unasked runtime caveat for full fact recall; any definite runtime-implementation claim must be checked separately."
+    },
+    {
+      "schema_version": "archie.benchmark-question.v1",
+      "schema_revision": 2,
+      "id": "question:fixture-base-path",
+      "question": "What type-dependency path connects Fixture.App.Controller to Fixture.Core.BaseService?",
+      "expected_facts": [
+        {
+          "id": "fact:fixture-base-path-1",
+          "text": "Controller creates Service instances, giving an extracted constructor-use dependency on Service."
+        },
+        {
+          "id": "fact:fixture-base-path-2",
+          "text": "Service inherits BaseService, giving the path Controller to Service to BaseService."
+        }
+      ],
+      "dependency_depth": 2,
+      "category": "path",
+      "expected_action": "answer",
+      "acceptable_citations": [
+        "App/Controller.cs:10-11",
+        "Core/Service.cs:4-7"
+      ],
+      "review_notes": ""
+    },
+    {
+      "schema_version": "archie.benchmark-question.v1",
+      "schema_revision": 2,
+      "id": "question:fixture-reverse",
+      "question": "Which indexed types directly depend on the type Fixture.Core.IService, and through which relationships?",
+      "expected_facts": [
+        {
+          "id": "fact:fixture-reverse-1",
+          "text": "Controller has field-use and constructor-use dependencies on IService."
+        },
+        {
+          "id": "fact:fixture-reverse-2",
+          "text": "Service implements IService."
+        }
+      ],
+      "dependency_depth": 1,
+      "category": "reverse_dependency",
+      "expected_action": "answer",
+      "acceptable_citations": [
+        "App/Controller.cs:7-8",
+        "Core/Service.cs:5-7"
+      ],
+      "review_notes": "Type-to-type relationships only; a call to IService.Run targets a method rather than the IService type node."
+    },
+    {
+      "schema_version": "archie.benchmark-question.v1",
+      "schema_revision": 2,
+      "id": "question:fixture-cycle",
+      "question": "Which two fixture types form a field-dependency cycle?",
+      "expected_facts": [
+        {
+          "id": "fact:fixture-cycle-1",
+          "text": "CycleA has a Peer field of type CycleB."
+        },
+        {
+          "id": "fact:fixture-cycle-2",
+          "text": "CycleB has a Peer field of type CycleA, closing the cycle."
+        }
+      ],
+      "dependency_depth": 2,
+      "category": "cycle",
+      "expected_action": "answer",
+      "acceptable_citations": [
+        "Core/Cycles.cs:3-4"
+      ],
+      "review_notes": ""
+    },
+    {
+      "schema_version": "archie.benchmark-question.v1",
+      "schema_revision": 2,
+      "id": "question:fixture-unresolved",
+      "question": "What source declaration resolves Missing.Call in this indexed fixture?",
+      "expected_facts": [],
+      "dependency_depth": 0,
+      "category": "unresolved_reference",
+      "expected_action": "abstain",
+      "acceptable_citations": [],
+      "review_notes": "Intentionally unresolvable identifier. Expect insufficient evidence, not an invented declaration."
+    },
+    {
+      "schema_version": "archie.benchmark-question.v1",
+      "schema_revision": 2,
+      "id": "question:fixture-insufficient",
+      "question": "Which PostgreSQL schema stores Controller state in this fixture?",
+      "expected_facts": [],
+      "dependency_depth": 0,
+      "category": "insufficient_evidence",
+      "expected_action": "abstain",
+      "acceptable_citations": [],
+      "review_notes": "Expect abstention from supplied evidence; do not require a claim that PostgreSQL is absent everywhere."
+    }
+  ]
+}

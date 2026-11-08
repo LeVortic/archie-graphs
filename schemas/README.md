@@ -13,8 +13,10 @@ Schemas use JSON Schema Draft 2020-12. `$id` values use the repository URL and i
 - `answer-record.schema.json`: answer, claims, evidence, model run, and failure state; revision 2 adds question/index identity, selected chunk IDs, raw output, source diagnostics, and model revision/device/token/deadline metadata.
 - `graph-context.schema.json`: bounded graph paths, endpoint records, snapshot support, extractor provenance, and search diagnostics; answer revision 3 adds this optional context.
 - `model-response.schema.json`: strict generated abstention/claim payload with supplied evidence IDs.
+- `benchmark.schema.json`: versioned source-pinned question set, research question, split, and human-review gate.
 - `benchmark-question.schema.json`: reviewed question and fact annotations.
-- `experiment-record.schema.json`: reproducible paired source/graph evaluation.
+- `experiment-record.schema.json`: reproducible paired source/graph evaluation; revision 2 adds frozen benchmark/index/software identity, runtime/hardware settings, execution order, status, and in-flight checkpoints.
+- Answer run metadata optionally includes full pipeline latency alongside generation latency.
 - `common.schema.json`: shared IDs, source spans, diagnostics, nodes, edges, and claims.
 
 ## Extractor port

@@ -1,6 +1,6 @@
 # ArchiE Graphs Development Plan
 
-## Implementation checkpoint — 2026-11-06
+## Implementation checkpoint — 2026-11-08
 
 The first indexing slice now includes an editable Python CLI, a Roslyn adapter, a buildable two-project fixture, contract and source-reference validation, atomic publication, and preserved failure manifests. Supported extraction covers types, methods, inheritance, interfaces, resolved method calls, declared field types, constructor parameter types, and explicit or target-typed object creation. Integration tests compare repeated output, verify cross-project dependencies and exact evidence spans, and reject unresolved dependencies as edges.
 
@@ -103,6 +103,8 @@ Phase 1 is partially complete. Phase 2 still needs full symbol/relationship cove
 
 **Gate:** Benchmark annotations are complete and independent review issues are resolved.
 
+**Checkpoint:** Sixteen source-derived development questions and a human review packet are drafted for the fixture and MarkovJunior. The project owner selected factual correctness on multi-hop C# questions as the primary focus. Five calibration questions fall in that primary subset; a larger held-out set is still required. Research-question wording, proposed human fact-F1 protocol, labels, citations, and abstention policy remain unapproved. Phase 7 is not complete.
+
 ## 8. Build the experiment runner
 
 1. Run identical questions through source and graph modes with the same model, context budget, and generation settings.
@@ -113,6 +115,8 @@ Phase 1 is partially complete. Phase 2 still needs full symbol/relationship cove
 6. Validate result records before analysis.
 
 **Gate:** A complete run can be reproduced from benchmark version, source commits, model versions, configuration, and seed.
+
+**Checkpoint:** `archie evaluate` implements seeded question order, counterbalanced paired modes, frozen benchmark/index/model/software settings, atomic per-attempt checkpoints, interrupted/failed-attempt retention, single-writer locking, structural citation checks, and a non-overwriting human review template. Model quality scores and automatic retries are not implemented. Draft runs require an explicit flag; no research results are approved while Phase 7 review is pending. MarkovJunior source provenance is pinned by content hash because a verified upstream commit is unavailable.
 
 ## 9. Analyze results
 

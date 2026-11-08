@@ -157,3 +157,26 @@ Reuse the source-answering pipeline and preserve its public API. Anchor graph se
 - The current graph loader still requires the original checkout for span validation; model excerpts come from snapshots.
 - Citation validity is checked mechanically; semantic support remains uncertain.
 - A paired smoke test validates execution, not comparative quality. Reviewed benchmarks and experiment controls are still required.
+
+
+## ADR-009: Reviewed benchmarks and resumable paired experiments
+
+Status: Accepted for runner behavior; research labels and scoring protocol remain draft
+
+### Context
+
+Both answer modes work. The project owner selected factual correctness on multi-hop C# architecture questions as the primary research focus. Running comparisons before label review or treating citation validity as correctness would produce misleading results. Interrupted or failed generation attempts must remain visible.
+
+### Decision
+
+Draft separate versioned fixture and MarkovJunior development benchmarks with expected facts, source regions, categories, depth, source hashes, and explicit human-review metadata. Keep them unapproved until reviewed. Use the existing `ask` workflow for both evaluation modes. Shuffle questions with a recorded seed and counterbalance first-mode order. Freeze model/runtime/device, embedding identity, context/output/deadline settings, hardware, code/schema hash, benchmark snapshot, source/index identity, subset, and execution schedule. Checkpoint raw attempts atomically under a single-writer lock. Preserve interrupted and failed attempts without automatic retry; reject incompatible resumes. Report structural citation checks and operational observations separately from pending human fact grading. Never overwrite a human review template.
+
+### Consequences
+
+- No extra inference service or automatic model-based judge is introduced.
+- The existing file-lock dependency is declared explicitly for evaluation and lightweight fake-runtime tests.
+- Benchmark changes or review approval require a fresh run directory, preserving draft history.
+- A content hash pins the vendored MarkovJunior source because its upstream Git revision is unverified.
+- The proposed primary metric is human-annotated atomic-fact F1 on multi-hop questions, with precision and recall; this protocol still needs approval.
+- Development/calibration questions cannot be presented as held-out research evidence.
+- Citation validity alone does not establish factual correctness, support, or relevance.

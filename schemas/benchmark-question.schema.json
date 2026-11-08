@@ -4,26 +4,90 @@
   "title": "Benchmark question",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "id", "question", "expected_facts", "dependency_depth"],
+  "required": [
+    "schema_version",
+    "id",
+    "question",
+    "expected_facts",
+    "dependency_depth"
+  ],
   "properties": {
-    "schema_version": { "const": "archie.benchmark-question.v1" },
-    "schema_revision": { "type": "integer", "minimum": 1, "default": 1 },
-    "id": { "$ref": "common.schema.json#/$defs/identifier" },
-    "question": { "type": "string", "minLength": 1 },
+    "schema_version": {
+      "const": "archie.benchmark-question.v1"
+    },
+    "schema_revision": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 1
+    },
+    "id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "question": {
+      "type": "string",
+      "minLength": 1
+    },
     "expected_facts": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "text"],
+        "required": [
+          "id",
+          "text"
+        ],
         "properties": {
-          "id": { "$ref": "common.schema.json#/$defs/identifier" },
-          "text": { "type": "string", "minLength": 1 },
-          "required_evidence_kinds": { "type": "array", "items": { "enum": ["source_span", "graph_edge", "graph_path"] }, "uniqueItems": true }
+          "id": {
+            "$ref": "common.schema.json#/$defs/identifier"
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1
+          },
+          "required_evidence_kinds": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "source_span",
+                "graph_edge",
+                "graph_path"
+              ]
+            },
+            "uniqueItems": true
+          }
         }
       }
     },
-    "dependency_depth": { "type": "integer", "minimum": 0 },
-    "acceptable_citations": { "type": "array", "items": { "type": "string" } }
+    "dependency_depth": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "acceptable_citations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "local_fact",
+        "dependency",
+        "path",
+        "reverse_dependency",
+        "cycle",
+        "unresolved_reference",
+        "insufficient_evidence"
+      ]
+    },
+    "expected_action": {
+      "enum": [
+        "answer",
+        "abstain"
+      ]
+    },
+    "review_notes": {
+      "type": "string"
+    }
   }
 }

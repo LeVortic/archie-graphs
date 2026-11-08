@@ -1,0 +1,205 @@
+{
+  "schema_version": "archie.benchmark.v1",
+  "version": "markovjunior-development-v1",
+  "split": "development",
+  "research_question": "Does source-backed dependency-graph context improve factual correctness on multi-hop C# architecture questions, compared with source-only retrieval using the same local model and context ceiling?",
+  "source": {
+    "id": "markovjunior",
+    "content_hash": "sha256:b2534eee221ce2ad219b05235864e77cda3fff0d04e42e9b94dd70b3c9e03db1",
+    "revision": null,
+    "provenance_note": "Local vendored checkout has no verified upstream Git revision; source hash freezes indexed source/project bytes."
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null
+  },
+  "questions": [
+    {
+      "schema_version": "archie.benchmark-question.v1",
+      "schema_revision": 2,
+      "id": "question:markov-loop",
+      "question": "What is the loop condition in Interpreter.Run, including the meaning of a non-positive steps value?",
+      "expected_facts": [
+        {
+          "id": "fact:markov-loop-1",
+          "text": "The loop requires current to be non-null."
+        },
+        {
+          "id": "fact:markov-loop-2",
+          "text": "It also requires steps <= 0 or counter < steps; non-positive steps remove the step-count bound."
+        }
+      ],
+      "dependency_depth": 0,
+      "category": "local_fact",
+      "expected_action": "answer",
+      "acceptable_citations": [
+        "source/Interpreter.cs:63-78"
+      ],
+      "review_notes": ""
+    },
+    {
+      "schema_version": "archie.benchmark-question.v1",
+      "schema_revision": 2,
+      "id": "question:markov-initialization",
+      "question": "How does Interpreter.Run initialize its random generator and grid before executing nodes?",
+      "expected_facts": [
+        {
+          "id": "fact:markov-initialization-1",
+          "text": "It creates a Random instance using the seed argument."
+        },
+        {
+          "id": "fact:markov-initialization-2",
+          "text": "It assigns grid = startgrid and clears the grid."
+        },
+        {
+          "id": "fact:markov-initialization-3",
+          "text": "If origin is true, it sets the central grid cell to 1."
+        }
+      ],
+      "dependency_depth": 0,
+      "category": "local_fact",
+      "expected_action": "answer",
+      "acceptable_citations": [
+        "source/Interpreter.cs:52-57"
+      ],
+      "review_notes": ""
+    },
+    {
+      "schema_version": "archie.benchmark-question.v1",
+      "schema_revision": 2,
+      "id": "question:markov-grid",
+      "question": "What does Interpreter.Load call to create the grid, and how does it handle a null grid result?",
+      "expected_facts": [
+        {
+          "id": "fact:markov-grid-1",
+          "text": "Interpreter.Load calls Grid.Load with xelem and the MX, MY, MZ dimensions."
+        },
+        {
+          "id": "fact:markov-grid-2",
+          "text": "A null grid causes a failure message and a null return."
+        }
+      ],
+      "dependency_depth": 1,
+      "category": "dependency",
+      "expected_action": "answer",
+      "acceptable_citations": [
+        "source/Interpreter.cs:23-33"
+      ],
+      "review_notes": ""
+    },
+    {
+      "schema_version": "archie.benchmark-question.v1",
+      "schema_revision": 2,
+      "id": "question:markov-static-path",
+      "question": "What static call path connects Interpreter.Load to Node.Load?",
+      "expected_facts": [
+        {
+          "id": "fact:markov-static-path-1",
+          "text": "Interpreter.Load calls Node.Factory."
+        },
+        {
+          "id": "fact:markov-static-path-2",
+          "text": "Node.Factory calls result.Load, statically resolved to Node.Load."
+        }
+      ],
+      "dependency_depth": 2,
+      "category": "path",
+      "expected_action": "answer",
+      "acceptable_citations": [
+        "source/Interpreter.cs:43-45",
+        "source/Node.cs:9-9",
+        "source/Node.cs:16-45"
+      ],
+      "review_notes": "Used in earlier development smoke tests; this is a calibration question, not held-out evidence. Runtime-override caveats are optional; an invented unique runtime implementation is a separate unsupported claim."
+    },
+    {
+      "schema_version": "archie.benchmark-question.v1",
+      "schema_revision": 2,
+      "id": "question:markov-reverse",
+      "question": "Which method of Branch directly calls Node.Factory while constructing children?",
+      "expected_facts": [
+        {
+          "id": "fact:markov-reverse-1",
+          "text": "Branch.Load calls the inherited static Factory method for each child, resolved to Node.Factory."
+        }
+      ],
+      "dependency_depth": 1,
+      "category": "reverse_dependency",
+      "expected_action": "answer",
+      "acceptable_citations": [
+        "source/Node.cs:57-76"
+      ],
+      "review_notes": ""
+    },
+    {
+      "schema_version": "archie.benchmark-question.v1",
+      "schema_revision": 2,
+      "id": "question:markov-inheritance",
+      "question": "How do SequenceNode and MarkovNode reach Node through inheritance?",
+      "expected_facts": [
+        {
+          "id": "fact:markov-inheritance-1",
+          "text": "SequenceNode inherits Branch."
+        },
+        {
+          "id": "fact:markov-inheritance-2",
+          "text": "MarkovNode inherits Branch."
+        },
+        {
+          "id": "fact:markov-inheritance-3",
+          "text": "Branch inherits Node."
+        }
+      ],
+      "dependency_depth": 2,
+      "category": "path",
+      "expected_action": "answer",
+      "acceptable_citations": [
+        "source/Node.cs:51-55",
+        "source/Node.cs:99-103"
+      ],
+      "review_notes": ""
+    },
+    {
+      "schema_version": "archie.benchmark-question.v1",
+      "schema_revision": 2,
+      "id": "question:markov-cycle",
+      "question": "What type-dependency cycle connects Node, Interpreter, and Branch using Node.ip, Interpreter.root, and the base class of Branch?",
+      "expected_facts": [
+        {
+          "id": "fact:markov-cycle-1",
+          "text": "Node has an ip field of type Interpreter."
+        },
+        {
+          "id": "fact:markov-cycle-2",
+          "text": "Interpreter has a root field of type Branch."
+        },
+        {
+          "id": "fact:markov-cycle-3",
+          "text": "Branch inherits Node, closing the type-dependency cycle."
+        }
+      ],
+      "dependency_depth": 3,
+      "category": "cycle",
+      "expected_action": "answer",
+      "acceptable_citations": [
+        "source/Node.cs:7-14",
+        "source/Node.cs:51-55",
+        "source/Interpreter.cs:9-11"
+      ],
+      "review_notes": "The cycle needs three relationships, exceeding the graph context single-path depth of two; multiple supplied paths may be needed."
+    },
+    {
+      "schema_version": "archie.benchmark-question.v1",
+      "schema_revision": 2,
+      "id": "question:markov-insufficient",
+      "question": "Which PostgreSQL schema does MarkovJunior use to store execution state?",
+      "expected_facts": [],
+      "dependency_depth": 0,
+      "category": "insufficient_evidence",
+      "expected_action": "abstain",
+      "acceptable_citations": [],
+      "review_notes": "Used in earlier smoke tests; an abstention check, not a held-out generalization claim."
+    }
+  ]
+}

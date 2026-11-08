@@ -37,6 +37,7 @@
         "finish_reason": {"type": "string", "enum": ["stop", "length"]},
         "embedding_model_id": { "type": "string" },
         "context_tokens": { "type": "integer", "minimum": 0 },
+        "pipeline_latency_ms": {"type": "number", "minimum": 0},
         "latency_ms": { "type": "number", "minimum": 0 },
         "truncated": { "type": "boolean" }
       }

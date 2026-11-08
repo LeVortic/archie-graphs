@@ -4,11 +4,13 @@ import json
 import subprocess
 import sys
 import sqlite3
+import platform
 from pathlib import Path
 
 from jsonschema import ValidationError
 
 from .application import index_solution
+from .evaluation import evaluate, load_benchmark
 from .embeddings import SentenceEmbedder
 from .language_model import QwenModel
 from .answering import answer_source, answer_graph
@@ -36,6 +38,18 @@ class RoslynExtractor:
         return json.loads(process.stdout)
 
 
+def _ask(index, question, embedder, model, chunks, *, mode="source", top_k=5,
+         context_budget=4096, max_new_tokens=1024, timeout_seconds=180):
+    if mode not in {"source", "graph"}:
+        raise ValueError("Answer mode must be source or graph")
+    retrieved = retrieve(index, question, embedder, top_k=top_k)
+    settings = {"context_budget": context_budget, "max_new_tokens": max_new_tokens, "timeout_seconds": timeout_seconds}
+    if mode == "graph":
+        context = build_graph_context(load_graph(index), retrieved, chunks)
+        return answer_graph(retrieved, question, model, context, **settings)
+    return answer_source(retrieved, question, model, **settings)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="archie")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -53,12 +67,20 @@ def main(argv=None):
     ask.add_argument("index", help="Published embedding-enabled index directory")
     ask.add_argument("question")
     ask.add_argument("--mode", choices=("source", "graph"), default="source")
-    ask.add_argument("--top-k", type=int, default=5)
-    ask.add_argument("--context-budget", type=int, default=4096)
-    ask.add_argument("--max-new-tokens", type=int, default=1024)
-    ask.add_argument("--timeout", type=float, default=180)
-    ask.add_argument("--device", choices=("auto", "cpu", "cuda"), default="auto")
     ask.add_argument("--format", choices=("json", "text"), default="json")
+    evaluation = commands.add_parser("evaluate", help="Run resumable paired source/graph experiments")
+    evaluation.add_argument("benchmark", help="Versioned benchmark JSON file")
+    evaluation.add_argument("--index", required=True, help="Matching embedding-enabled index")
+    evaluation.add_argument("--output", required=True, help="Run directory; matching existing runs resume")
+    evaluation.add_argument("--seed", type=int, default=0)
+    evaluation.add_argument("--allow-draft", action="store_true", help="Permit unreviewed development smoke tests")
+    evaluation.add_argument("--question-id", action="append", help="Select benchmark question IDs; repeat for a subset")
+    for command in (ask, evaluation):
+        command.add_argument("--top-k", type=int, default=5)
+        command.add_argument("--context-budget", type=int, default=4096)
+        command.add_argument("--max-new-tokens", type=int, default=1024)
+        command.add_argument("--timeout", type=float, default=180)
+        command.add_argument("--device", choices=("auto", "cpu", "cuda"), default="auto")
     inspect = commands.add_parser("inspect", help="Query a published index")
     queries = inspect.add_subparsers(dest="query", required=True)
     for name in ("dependencies", "dependents"):
@@ -97,15 +119,9 @@ def main(argv=None):
             _, embeddings, chunks, _ = load_source_index(args.index)
             embedder = SentenceEmbedder(device=args.device, cache_dir=Path(args.index).resolve().parent / ".models",
                                         revision=embeddings["model"]["revision"])
-            retrieved = retrieve(args.index, args.question, embedder, top_k=args.top_k)
             model = QwenModel(device=args.device)
-            settings = {"context_budget": args.context_budget, "max_new_tokens": args.max_new_tokens,
-                        "timeout_seconds": args.timeout}
-            if args.mode == "graph":
-                context = build_graph_context(load_graph(args.index), retrieved, chunks)
-                result = answer_graph(retrieved, args.question, model, context, **settings)
-            else:
-                result = answer_source(retrieved, args.question, model, **settings)
+            result = _ask(args.index, args.question, embedder, model, chunks, mode=args.mode, top_k=args.top_k,
+                          context_budget=args.context_budget, max_new_tokens=args.max_new_tokens, timeout_seconds=args.timeout)
             if args.format == "json" or result["status"] == "failed":
                 print(json.dumps(result), file=sys.stderr if result["status"] == "failed" else sys.stdout)
             else:
@@ -124,6 +140,35 @@ def main(argv=None):
                             print(f"[{evidence['id']}] {source['path']}:{source['start_line']}:{source['start_column']}-"
                                   f"{source['end_line']}:{source['end_column']}")
             return 0 if result["status"] == "succeeded" else 1
+        elif args.command == "evaluate":
+            benchmark = load_benchmark(args.benchmark, allow_draft=args.allow_draft)
+            manifest, embeddings, chunks, _ = load_source_index(args.index)
+            if manifest["source"]["content_hash"] != benchmark["source"]["content_hash"]:
+                raise ValueError("Benchmark source hash does not match the selected index")
+            embedder = SentenceEmbedder(device=args.device, cache_dir=Path(args.index).resolve().parent / ".models",
+                                        revision=embeddings["model"]["revision"])
+            model = QwenModel(device=args.device)
+            hardware = platform.machine()
+            if model.identity["device"] == "cuda":
+                import torch
+                hardware = torch.cuda.get_device_name(0)
+            configuration = {"model_id": model.identity["model_id"], "model_revision": model.identity["revision"],
+                "runtime_version": model.identity["runtime_version"], "device": model.identity["device"],
+                "dtype": model.identity["dtype"], "embedding_model_id": embedder.identity["model_id"],
+                "embedding_identity": embedder.identity, "context_budget_tokens": args.context_budget,
+                "max_new_tokens": args.max_new_tokens, "timeout_seconds": args.timeout, "top_k": args.top_k,
+                "hardware": hardware, "python_version": platform.python_version()}
+            from .graph_evidence import LIMITS
+            configuration["graph_limits"] = dict(LIMITS)
+            def answerer(question, mode):
+                return _ask(args.index, question, embedder, model, chunks, mode=mode, top_k=args.top_k,
+                            context_budget=args.context_budget, max_new_tokens=args.max_new_tokens, timeout_seconds=args.timeout)
+            summary = evaluate(benchmark, args.index, args.output, configuration, answerer,
+                seed=args.seed, allow_draft=args.allow_draft, question_ids=args.question_id,
+                progress=lambda value: print(json.dumps(value), file=sys.stderr, flush=True))
+            print(json.dumps({"status": summary["status"], "run_id": summary["run_id"],
+                              "path": str(Path(args.output).resolve()), "factual_grading": summary["factual_grading"]}))
+            return 1 if any(mode["failed"] or mode["citation_error_records"] for mode in summary["modes"].values()) else 0
         else:
             graph = load_graph(args.index)
             if args.query in {"dependencies", "dependents"}:

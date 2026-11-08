@@ -189,3 +189,37 @@ JSON answer records use schema revision 3 in graph mode. The optional `graph_con
 Graph mode currently needs the original source checkout because it reuses graph loading and span validation from `inspect`. It quotes indexed snapshots, not changed live text. Re-index after source changes. Extraction warnings and partial status remain visible in both modes.
 
 An offline CUDA smoke test on MarkovJunior answered `Interpreter.Load -> Node.Factory -> Node.Load` with a graph-path citation; source mode abstained for that question. Both modes abstained on an unsupported PostgreSQL question. These are plumbing and citation checks, not benchmark results. Generated records are under `artifacts/graph-answering-smoke/` and are intentionally ignored by Git.
+
+## Draft benchmarks and paired evaluation
+
+The primary research focus is factual correctness on multi-hop C# architecture questions. The draft wording, labels, and proposed human fact-F1 protocol are in [benchmarks/REVIEW.md](benchmarks/REVIEW.md) and [benchmarks/PROTOCOL.md](benchmarks/PROTOCOL.md). Both benchmark JSON files are still `draft`. Their sixteen development questions include five multi-hop calibration questions and eleven controls; they are not a held-out research dataset. Some were used during earlier smoke tests.
+
+Human involvement is required before research runs: review wording, atomic expected facts, depth/category labels, source regions, abstention policy, and scoring rules. Only after explicit review should a benchmark's review status become `approved` with a non-empty reviewer and an ISO-8601 review date. A source content hash freezes each indexed project. The fixture also records a project Git revision; this vendored MarkovJunior snapshot has no verified upstream Git revision, which is recorded as null rather than invented.
+
+Install the optional model/evaluation dependencies with `pip install -e '.[retrieval,answering]'`. Run a reviewed benchmark using its matching embedding-enabled index:
+
+```sh
+.venv/bin/archie evaluate benchmarks/markovjunior-v1.json --index INDEX_DIR --output artifacts/evaluations/markov-v1 --seed 42 --top-k 8 --device auto
+```
+
+The default command rejects unreviewed benchmarks. For development only, explicitly add `--allow-draft`. A small smoke run can select individual questions:
+
+```sh
+.venv/bin/archie evaluate benchmarks/markovjunior-v1.json --index INDEX_DIR --output artifacts/evaluations/markov-smoke --seed 42 --allow-draft --question-id question:markov-static-path --question-id question:markov-insufficient --top-k 8 --device auto
+```
+
+This flag does not approve labels or authorize research claims. The question subset, benchmark contents/review state, source/index identity, embedding identity, model revision/runtime/device/dtype, hardware, Python version, software hash, generation limits, and graph bounds are frozen in the run record. Expected facts and rubric citations are never supplied to the language model. Both modes call the same workflow as `ask`, with equal context ceilings and generation settings. Question order is shuffled by the recorded seed; first-mode order alternates to counterbalance source-first and graph-first trials.
+
+Evaluation output contains:
+
+- `experiment.json`: benchmark snapshot, exact execution order, raw answer records, failures, timestamps, and frozen settings. It is atomically checkpointed before and after each attempt.
+- `summary.json`: status/failure counts, answer/abstention counts, structural citation checks, and mean token/latency observations. `factual_grading` remains `pending_human_review`; there is no automated correctness score.
+- `review-template.json`: pending human-assessment fields, expected facts, rubric regions, model claims, and indexes into raw answers. It is created atomically after completion and never overwritten on resume. It is not a blinded-review interface.
+
+Repeat the exact command to resume. Completed attempts, including failures, are never automatically retried. A process interrupted during an attempt leaves an in-flight checkpoint; resuming preserves that attempt as `EVALUATION_INTERRUPTED` and continues with the remaining schedule. To explicitly retry a question, use a new output directory and select it by question ID, preserving the old attempt. Changed benchmark/review metadata, settings, software, model identity, source/index, or question selection require a new directory. Concurrent writers to the same run directory are rejected with a process lock; locks are released when the process exits.
+
+Structural checks verify cited source spans/chunk origins and canonical graph paths against the selected index. They do not judge truth, entailment, relevance, gold-fact coverage, unsupported claims, or correct abstention. Failed answers remain visible separately; a high citation-validity rate among accepted answers must not hide rejected generations. Human fact grading and quality analysis are deliberately deferred until the protocol and labels are approved. Do not use keyword matching as a substitute.
+
+`latency_ms` remains worker generation latency, including model loading. The evaluator additionally records `pipeline_latency_ms` for retrieval, graph preparation, answer construction, and generation; model/tokenizer initialization before the run is not included. Means use successful attempts; failed-attempt counts and raw records remain available. Actual context usage may differ between modes despite equal ceilings. CPU generation may exceed the default deadline; select settings before starting a run and keep them fixed.
+
+Exit code 0 means the schedule completed without model failures or detected citation-record errors, not that answers were factually correct. Exit code 1 reports setup, resume, generation, or structural-check failures. Graph evaluation inherits the original-checkout requirement. Keep the benchmark, published index, model caches or pinned downloadable revisions, and complete output directory for reproducibility.
