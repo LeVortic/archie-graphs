@@ -7,6 +7,7 @@ import pytest
 from archie.application import index_solution
 from archie.cli import ASSEMBLY, RoslynExtractor, main
 from archie.contracts import validate_index
+from archie.graph_evidence import build_graph_context
 from archie.graph import load_graph, query_dependencies, query_neighborhood, query_paths, query_cycles
 
 ROOT = Path(__file__).parents[1]
@@ -128,6 +129,13 @@ def test_roslyn_fixture_end_to_end(tmp_path):
     assert len(cycles["cycles"]) == 1 and not cycles["truncated"]
     assert {n["name"] for n in cycles["nodes"]} == {"CycleA", "CycleB"}
     assert all(e["source"]["path"] == "Core/Cycles.cs" for e in cycles["edges"])
+    chunks = {chunk["id"]: chunk for chunk in
+              (json.loads(line) for line in (first / "source-chunks.jsonl").read_text().splitlines())}
+    retrieved = {"index_id": graph.graph["index_id"], "query": "Fixture.App.Controller dependencies",
+                 "matches": [chunk for chunk in chunks.values() if chunk["path"] == "App/Controller.cs"]}
+    context = build_graph_context(graph, retrieved, chunks)
+    assert any(len(path["edges"]) == 2 and path["nodes"][-1]["id"] == base for path in context["paths"])
+    assert all(edge["status"] == "extracted" for path in context["paths"] for edge in path["edges"])
     lines = (ROOT / "fixtures/csharp/App/Controller.cs").read_text().splitlines()
     for edge in dependencies:
         assert by_id[edge["from"]]["project_id"] != by_id[edge["to"]]["project_id"]

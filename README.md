@@ -47,13 +47,13 @@ Published indexes contain `manifest.json`, `extractor.json`, `graph.json`, `sour
 - Source and referenced projects must be inside the directory containing the input solution or project. Prefer a solution at the repository root for sibling projects.
 - Relationships to external framework symbols are omitted. Partial extraction retains diagnostics and can produce a complete index of the validated subset; inspect `extractor.json` status.
 - Published graph records remain JSON. The query layer builds a NetworkX `MultiDiGraph` from the validated extractor artifact, preserving parallel relationships and source evidence.
-- Source snapshots use deterministic chunks of up to 40 lines and 2,000 characters, with exact UTF-16 source spans. Embedding-enabled indexes also split to the model token budget. Source-only local answering is available; graph-augmented answering remains unfinished.
+- Source snapshots use deterministic chunks of up to 40 lines and 2,000 characters, with exact UTF-16 source spans. Embedding-enabled indexes also split to the model token budget. Source and graph-augmented local answering are available; benchmark evaluation remains unfinished.
 - Dependency edges link the owning type to an indexed type: `field_use` covers declared field types; `constructor_use` covers constructor parameter types and explicit or target-typed object creation. Each edge cites the type syntax or creation expression. External types are omitted; unresolved types remain diagnostics.
 - Dependency extraction currently covers directly indexed named types. Array elements, generic type arguments, primary-constructor parameters, and constructor initializers are not traversed.
 - Namespaces, capability probing, explicit cancellation messages, and full extractor failure contracts remain unfinished.
 - Source files should remain unchanged during indexing. SDK, project imports, and external dependency changes are not yet captured in the source content hash.
 
-Graph query milestone complete: direct/reverse dependencies, bounded neighborhoods, dependency paths, and cycle queries. Source retrieval and source-only local answering are implemented; next slice: graph-augmented answering.
+Graph query milestone complete: direct/reverse dependencies, bounded neighborhoods, dependency paths, and cycle queries. Source retrieval and both local answer modes are implemented; next milestone: reviewed benchmarks and evaluation.
 
 ## Query direct dependencies
 
@@ -155,7 +155,7 @@ Schema-constrained decoding filters generated tokens to produce a JSON object co
 
 Successful JSON records include the question/index identity, selected chunk IDs, source evidence, raw model response, exact model revision, runtime/device/dtype, input/output token counts, latency, and context truncation. Failed generation records retain available evidence and raw output for diagnosis and are printed to stderr. Errors before answer assembly use the normal CLI failure JSON. Context truncation means some retrieved excerpts were omitted; top-k retrieval itself is not a completeness guarantee.
 
-Citation IDs and source spans are validated against the excerpts supplied to the model. This does not establish that a claim follows from a cited passage, so generated claims have `support_status: uncertain`. They are not automatically labeled supported. Abstention also does not prove a feature is absent from the entire repository. Generation uses greedy decoding (`do_sample=False`); numerical differences across hardware/runtime versions can still affect output. Graph mode and benchmark evaluation remain unfinished.
+Citation IDs and source spans are validated against the excerpts supplied to the model. This does not establish that a claim follows from a cited passage, so generated claims have `support_status: uncertain`. They are not automatically labeled supported. Abstention also does not prove a feature is absent from the entire repository. Generation uses greedy decoding (`do_sample=False`); numerical differences across hardware/runtime versions can still affect output. Graph mode is described below; benchmark evaluation remains unfinished.
 
 Place the project you want to index inside `ignore/` (for example, `ignore/MyProject/`), then index its project file and query the generated index:
 
@@ -165,3 +165,27 @@ Place the project you want to index inside `ignore/` (for example, `ignore/MyPro
 ```
 
 Re-use the published directory printed by indexing, replacing `INDEX_DIRECTORY` with that directory name. Preserve any extraction diagnostics reported for your project. Array/dynamic field types are omitted from dependency edges rather than crashing symbol lookup; their source text remains available to retrieval.
+
+## Graph-augmented answers
+
+Use the same embedding-enabled index and question with `--mode graph`:
+
+```sh
+.venv/bin/archie ask artifacts/index/INDEX_DIRECTORY 'What static call path connects Interpreter.Load to Node.Load?' --mode graph --top-k 8 --context-budget 4096 --device auto --format text
+```
+
+Source mode remains the default. Both modes use the same pinned Qwen model, greedy decoding, output limit, and total context-token ceiling. Graph evidence consumes that ceiling rather than adding an extra allowance. Up to half the budget remaining after the base prompt is allocated to graph paths (including graph instructions); retrieved source chunks fill the remainder and any unused graph allocation. Actual input token counts are recorded and can differ between modes. Equal ceilings do not establish a fair-quality comparison by themselves; reviewed benchmarks and controlled experiments remain necessary.
+
+Graph mode selects source-anchored symbols from the retrieved chunks. Exact qualified names mentioned in the question take priority, followed by simple names and retrieval rank. It first searches for directed paths between explicitly named anchors, then shares remaining slots across outgoing neighborhoods so a high-degree seed cannot monopolize the evidence. This is a deterministic relevance heuristic, not a semantic question resolver. Qualified names not present in the retrieved source anchors are not searched globally.
+
+Fixed search limits are five seeds, two hops, twenty candidate paths, 100 visited nodes and thirty neighborhood edges per seed, and two returned paths plus 1,000 examined edges per ordered anchor pair. There are at most twenty anchor pairs. Neighborhood expansion stops after a node repeats, while retaining the closing relationship as evidence. Search limits apply after full index loading; graph mode does not provide an unbounded or exhaustive architecture search.
+
+Every graph relationship must be extracted, connect its recorded endpoint IDs in order, and have source snapshot coverage at both ends of its span. Paths without that source backing are skipped and counted. Model prompts include node names/projects, relationship kinds, stored directions, original source spans, and source text clipped from indexed snapshots using UTF-16 columns. Relationships such as calls represent static symbol resolution, not guaranteed runtime dispatch. Class fields and method calls remain distinct symbol-level relations; no inferred type-level call edges are added.
+
+JSON answer records use schema revision 3 in graph mode. The optional `graph_context` retains the selected paths, complete node/edge records and extractor provenance, supporting source chunks, seed IDs, search bounds, and truncation reasons. `graph_path` citations reference canonical node/edge IDs; text output lists the path and each relationship's file/line/column span. Context chunk IDs include the origins of clipped graph excerpts, even when the entire chunk was not sent to Qwen. Only source/graph evidence actually admitted to the prompt is permitted as a generated citation. Unknown IDs and malformed responses are still rejected, and claim support remains `uncertain`.
+
+`run.truncated` reports either context omission or bounded graph search; `graph_context.diagnostics` gives the graph-specific reason. Empty graph evidence falls back to the same source-only prompt while retaining `mode: graph` and its diagnostics. No admitted evidence produces explicit abstention. Missing evidence or an empty bounded search does not prove no dependency exists.
+
+Graph mode currently needs the original source checkout because it reuses graph loading and span validation from `inspect`. It quotes indexed snapshots, not changed live text. Re-index after source changes. Extraction warnings and partial status remain visible in both modes.
+
+An offline CUDA smoke test on MarkovJunior answered `Interpreter.Load -> Node.Factory -> Node.Load` with a graph-path citation; source mode abstained for that question. Both modes abstained on an unsupported PostgreSQL question. These are plumbing and citation checks, not benchmark results. Generated records are under `artifacts/graph-answering-smoke/` and are intentionally ignored by Git.

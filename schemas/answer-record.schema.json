@@ -14,6 +14,7 @@
     "raw_response": {"type": "string"},
     "extraction_status": {"type": "string", "enum": ["succeeded", "partial"]},
     "source_diagnostics": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/diagnostic"}},
+    "graph_context": {"$ref": "graph-context.schema.json"},
     "question_id": { "$ref": "common.schema.json#/$defs/identifier" },
     "mode": { "type": "string", "enum": ["source", "graph"] },
     "answer": { "type": "string" },

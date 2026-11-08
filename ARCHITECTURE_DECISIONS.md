@@ -135,3 +135,25 @@ Use `Qwen/Qwen3-4B-Instruct-2507` at commit `cdbee75f17c01a7cc42f958dc650907174a
 - Strict JSON failures remain visible and are not silently repaired or retried.
 - GPU and CPU use the same pinned weights but differ in memory demand and numerical behavior.
 - Source-only answering does not complete graph-augmented answering or research evaluation.
+
+
+## ADR-008: Bounded graph evidence shares the source context budget
+
+Status: Accepted
+
+### Context
+
+The source-only Qwen adapter works. The graph mode must expose extracted multi-hop relationships without receiving an extra context allowance or inventing runtime behavior. A high-degree early seed can otherwise consume every candidate path slot.
+
+### Decision
+
+Reuse the source-answering pipeline and preserve its public API. Anchor graph seeds to retrieved source spans, prioritize explicitly named symbols, search bounded directed paths between named anchors, and share remaining slots across bounded outgoing neighborhoods. Admit only connected extracted relationships backed by indexed source chunks. Supply clipped source excerpts and preserve full node/edge identity and provenance in answer records. Reserve up to half of the remaining context budget for graph evidence and fill the rest with retrieved source. Keep model identity, generation settings, and total context ceilings identical across modes; record actual token usage and all search/context truncation.
+
+### Consequences
+
+- Source behavior and the existing index format remain compatible.
+- Graph evidence can expose paths absent from the top-k source excerpts without adding inferred edges.
+- Path selection is bounded and heuristic; absent results are not proof of absent dependencies.
+- The current graph loader still requires the original checkout for span validation; model excerpts come from snapshots.
+- Citation validity is checked mechanically; semantic support remains uncertain.
+- A paired smoke test validates execution, not comparative quality. Reviewed benchmarks and experiment controls are still required.

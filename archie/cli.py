@@ -11,7 +11,8 @@ from jsonschema import ValidationError
 from .application import index_solution
 from .embeddings import SentenceEmbedder
 from .language_model import QwenModel
-from .answering import answer_source
+from .answering import answer_source, answer_graph
+from .graph_evidence import build_graph_context
 from .retrieval import load_source_index, retrieve
 from .graph import load_graph, query_dependencies, query_neighborhood, query_paths, query_cycles
 
@@ -48,10 +49,10 @@ def main(argv=None):
     retrieval.add_argument("question")
     retrieval.add_argument("--top-k", type=int, default=5)
     retrieval.add_argument("--device", choices=("auto", "cpu", "cuda"), default="auto")
-    ask = commands.add_parser("ask", help="Answer from retrieved source using local Qwen3-4B")
+    ask = commands.add_parser("ask", help="Answer from source or graph evidence using local Qwen3-4B")
     ask.add_argument("index", help="Published embedding-enabled index directory")
     ask.add_argument("question")
-    ask.add_argument("--mode", choices=("source",), default="source")
+    ask.add_argument("--mode", choices=("source", "graph"), default="source")
     ask.add_argument("--top-k", type=int, default=5)
     ask.add_argument("--context-budget", type=int, default=4096)
     ask.add_argument("--max-new-tokens", type=int, default=1024)
@@ -93,13 +94,18 @@ def main(argv=None):
                                         revision=embeddings["model"]["revision"])
             print(json.dumps(retrieve(args.index, args.question, embedder, top_k=args.top_k)))
         elif args.command == "ask":
-            _, embeddings, _, _ = load_source_index(args.index)
+            _, embeddings, chunks, _ = load_source_index(args.index)
             embedder = SentenceEmbedder(device=args.device, cache_dir=Path(args.index).resolve().parent / ".models",
                                         revision=embeddings["model"]["revision"])
             retrieved = retrieve(args.index, args.question, embedder, top_k=args.top_k)
             model = QwenModel(device=args.device)
-            result = answer_source(retrieved, args.question, model, context_budget=args.context_budget,
-                                   max_new_tokens=args.max_new_tokens, timeout_seconds=args.timeout)
+            settings = {"context_budget": args.context_budget, "max_new_tokens": args.max_new_tokens,
+                        "timeout_seconds": args.timeout}
+            if args.mode == "graph":
+                context = build_graph_context(load_graph(args.index), retrieved, chunks)
+                result = answer_graph(retrieved, args.question, model, context, **settings)
+            else:
+                result = answer_source(retrieved, args.question, model, **settings)
             if args.format == "json" or result["status"] == "failed":
                 print(json.dumps(result), file=sys.stderr if result["status"] == "failed" else sys.stdout)
             else:
@@ -107,9 +113,16 @@ def main(argv=None):
                 cited = {key for claim in result["claims"] for key in claim["evidence_ids"]}
                 for evidence in result["evidence"]:
                     if evidence["id"] in cited:
-                        source = evidence["source"]
-                        print(f"[{evidence['id']}] {source['path']}:{source['start_line']}:{source['start_column']}-"
-                              f"{source['end_line']}:{source['end_column']}")
+                        if evidence["kind"] == "source_span":
+                            sources = [evidence["source"]]
+                        else:
+                            path = next(path for path in result["graph_context"]["paths"] if path["evidence_id"] == evidence["id"])
+                            sources = [edge["source"] for edge in path["edges"]]
+                            labels = [node["qualified_name"] for node in path["nodes"]]
+                            print(f"[{evidence['id']}] Graph path: {' -> '.join(labels)}")
+                        for source in sources:
+                            print(f"[{evidence['id']}] {source['path']}:{source['start_line']}:{source['start_column']}-"
+                                  f"{source['end_line']}:{source['end_column']}")
             return 0 if result["status"] == "succeeded" else 1
         else:
             graph = load_graph(args.index)

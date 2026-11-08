@@ -1,10 +1,10 @@
 # ArchiE Graphs Development Plan
 
-## Implementation checkpoint — 2026-11-01
+## Implementation checkpoint — 2026-11-06
 
 The first indexing slice now includes an editable Python CLI, a Roslyn adapter, a buildable two-project fixture, contract and source-reference validation, atomic publication, and preserved failure manifests. Supported extraction covers types, methods, inheritance, interfaces, resolved method calls, declared field types, constructor parameter types, and explicit or target-typed object creation. Integration tests compare repeated output, verify cross-project dependencies and exact evidence spans, and reject unresolved dependencies as edges.
 
-Phase 1 is partially complete. Phase 2 still needs full symbol/relationship coverage, probe/cancel contracts, capability negotiation, and broader failure fixtures. The graph query milestone now provides validated NetworkX loading, direct/reverse dependencies, breadth-first neighborhoods, directed dependency paths, and cycle queries. Results retain source evidence and report exhausted node, edge, result-count, and search-work limits. A C# cycle fixture and graph tests cover multi-hop evidence, parallel relationships, self-loops, depth bounds, and deterministic results. Source retrieval now provides deterministic token-aware chunks, local GPU/CPU embeddings, portable vectors, exact cosine top-k search, and model/content-aware caching. Source-only local answering now uses pinned Qwen3-4B, bounded source context, isolated generation deadlines, citation validation, abstention, and answer records. Graph-augmented answering remains unimplemented. See README.md for commands and current limits. Phase 0 research definitions and benchmark decisions remain open; local embedding and language-model baselines are selected.
+Phase 1 is partially complete. Phase 2 still needs full symbol/relationship coverage, probe/cancel contracts, capability negotiation, and broader failure fixtures. The graph query milestone now provides validated NetworkX loading, direct/reverse dependencies, breadth-first neighborhoods, directed dependency paths, and cycle queries. Results retain source evidence and report exhausted node, edge, result-count, and search-work limits. A C# cycle fixture and graph tests cover multi-hop evidence, parallel relationships, self-loops, depth bounds, and deterministic results. Source retrieval now provides deterministic token-aware chunks, local GPU/CPU embeddings, portable vectors, exact cosine top-k search, and model/content-aware caching. Source-only local answering now uses pinned Qwen3-4B, bounded source context, isolated generation deadlines, citation validation, abstention, and answer records. Graph-augmented answering adds bounded, snapshot-backed directed paths under the same context ceiling. See README.md for commands and current limits. Phase 0 research definitions and benchmark decisions remain open; local embedding and language-model baselines are selected.
 
 ## 0. Define the baseline
 
@@ -78,7 +78,7 @@ Phase 1 is partially complete. Phase 2 still needs full symbol/relationship cove
 
 **Gate:** CLI answers work in both modes and every citation maps to an existing file and line range.
 
-**Checkpoint:** The source-only answering slice is implemented. The Phase 5 gate is not complete: graph mode and comparative evaluation remain outstanding. Generated claims retain uncertain support status because citation validity does not prove entailment.
+**Checkpoint:** The Phase 5 functional gate is complete: source and graph CLI modes use the same pinned model and context ceiling, with validated source/path citations, abstention, and bounded evidence. Real-fixture integration and offline MarkovJunior paired smoke checks pass. Generated claims retain uncertain support status because citation validity does not prove entailment. Benchmark review, controlled comparisons, and research evaluation remain in Phases 7–9.
 
 ## 6. Finish the CLI
 
