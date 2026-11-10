@@ -10,9 +10,9 @@
     "provenance_note": "Tracked fixture at this project revision; source hash freezes indexed source/project bytes."
   },
   "review": {
-    "status": "draft",
-    "reviewer": null,
-    "reviewed_at": null
+    "status": "approved",
+    "reviewer": "Victor",
+    "reviewed_at": "2026-11-10T10:22:32.855283+00:00"
   },
   "questions": [
     {
@@ -38,7 +38,7 @@
       "schema_version": "archie.benchmark-question.v1",
       "schema_revision": 2,
       "id": "question:fixture-injection",
-      "question": "Which indexed type does Fixture.App.Controller receive in its constructor and store in its service field?",
+      "question": "What does Fixture.App.Controller receive in its constructor and store in its service field?",
       "expected_facts": [
         {
           "id": "fact:fixture-injection-1",
@@ -61,7 +61,7 @@
       "schema_version": "archie.benchmark-question.v1",
       "schema_revision": 2,
       "id": "question:fixture-call",
-      "question": "What is the statically resolved target of the call in Fixture.App.Controller.Handle?",
+      "question": "What is the target of the call in Fixture.App.Controller.Handle?",
       "expected_facts": [
         {
           "id": "fact:fixture-call-1",
@@ -81,7 +81,7 @@
       "schema_version": "archie.benchmark-question.v1",
       "schema_revision": 2,
       "id": "question:fixture-base-path",
-      "question": "What type-dependency path connects Fixture.App.Controller to Fixture.Core.BaseService?",
+      "question": "What connects Fixture.App.Controller to Fixture.Core.BaseService?",
       "expected_facts": [
         {
           "id": "fact:fixture-base-path-1",
@@ -105,7 +105,7 @@
       "schema_version": "archie.benchmark-question.v1",
       "schema_revision": 2,
       "id": "question:fixture-reverse",
-      "question": "Which indexed types directly depend on the type Fixture.Core.IService, and through which relationships?",
+      "question": "Which types directly depend on Fixture.Core.IService, and through which relationships?",
       "expected_facts": [
         {
           "id": "fact:fixture-reverse-1",
@@ -164,7 +164,7 @@
       "schema_version": "archie.benchmark-question.v1",
       "schema_revision": 2,
       "id": "question:fixture-insufficient",
-      "question": "Which PostgreSQL schema stores Controller state in this fixture?",
+      "question": "Which database schema stores Controller state in this fixture?",
       "expected_facts": [],
       "dependency_depth": 0,
       "category": "insufficient_evidence",

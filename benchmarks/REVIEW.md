@@ -38,7 +38,7 @@ Acceptable source regions: Core/Service.cs:3-7.
 
 ### question:fixture-injection
 
-Which indexed type does Fixture.App.Controller receive in its constructor and store in its service field?
+What does Fixture.App.Controller receive in its constructor and store in its service field?
 
 Subset: control; category: dependency; depth: 1; expected action: answer.
 
@@ -49,7 +49,7 @@ Acceptable source regions: App/Controller.cs:7-8.
 
 ### question:fixture-call
 
-What is the statically resolved target of the call in Fixture.App.Controller.Handle?
+What is the target of the call in Fixture.App.Controller.Handle?
 
 Subset: control; category: dependency; depth: 1; expected action: answer.
 
@@ -61,7 +61,7 @@ Review note: Do not require an unasked runtime caveat for full fact recall; any 
 
 ### question:fixture-base-path
 
-What type-dependency path connects Fixture.App.Controller to Fixture.Core.BaseService?
+What connects Fixture.App.Controller to Fixture.Core.BaseService?
 
 Subset: primary multi-hop; category: path; depth: 2; expected action: answer.
 
@@ -72,7 +72,7 @@ Acceptable source regions: App/Controller.cs:10-11, Core/Service.cs:4-7.
 
 ### question:fixture-reverse
 
-Which indexed types directly depend on the type Fixture.Core.IService?
+Which types directly depend on Fixture.Core.IService and through which relationships??
 
 Subset: control; category: reverse_dependency; depth: 1; expected action: answer.
 
@@ -217,7 +217,7 @@ Review note: The cycle needs three relationships, exceeding the graph context si
 
 ### question:markov-insufficient
 
-Which PostgreSQL schema does MarkovJunior use to store execution state?
+Which database schema does MarkovJunior use to store execution state?
 
 Subset: control; category: insufficient_evidence; depth: 0; expected action: abstain.
 

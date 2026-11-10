@@ -10,33 +10,33 @@
     "provenance_note": "Local vendored checkout has no verified upstream Git revision; source hash freezes indexed source/project bytes."
   },
   "review": {
-    "status": "draft",
-    "reviewer": null,
-    "reviewed_at": null
+    "status": "approved",
+    "reviewer": "Victor",
+    "reviewed_at": "2026-11-10T10:22:32.855283+00:00"
   },
   "questions": [
     {
       "schema_version": "archie.benchmark-question.v1",
       "schema_revision": 2,
       "id": "question:markov-loop",
-      "question": "What is the loop condition in Interpreter.Run, including the meaning of a non-positive steps value?",
+      "question": "How is execution initialized and when does its main loop stop?",
       "expected_facts": [
         {
           "id": "fact:markov-loop-1",
-          "text": "The loop requires current to be non-null."
+          "text": "Execution is initialized by setting the root node, it requires current to be non-null."
         },
         {
           "id": "fact:markov-loop-2",
-          "text": "It also requires steps <= 0 or counter < steps; non-positive steps remove the step-count bound."
+          "text": "in the while loop: while (current != null && (steps <= 0 || counter < steps))"
         }
       ],
       "dependency_depth": 0,
       "category": "local_fact",
       "expected_action": "answer",
       "acceptable_citations": [
-        "source/Interpreter.cs:63-78"
+        "source/Interpreter.cs:60-78"
       ],
-      "review_notes": ""
+      "review_notes": "Mentioning loop makes the LLM focus both answers on it, rather than look for the execution of the whole program"
     },
     {
       "schema_version": "archie.benchmark-question.v1",
@@ -84,7 +84,7 @@
       "category": "dependency",
       "expected_action": "answer",
       "acceptable_citations": [
-        "source/Interpreter.cs:23-33"
+        "source/Interpreter.cs:23-44"
       ],
       "review_notes": ""
     },
@@ -136,7 +136,7 @@
       "schema_version": "archie.benchmark-question.v1",
       "schema_revision": 2,
       "id": "question:markov-inheritance",
-      "question": "How do SequenceNode and MarkovNode reach Node through inheritance?",
+      "question": "How do SequenceNode and MarkovNode reach Node?",
       "expected_facts": [
         {
           "id": "fact:markov-inheritance-1",
@@ -164,7 +164,7 @@
       "schema_version": "archie.benchmark-question.v1",
       "schema_revision": 2,
       "id": "question:markov-cycle",
-      "question": "What type-dependency cycle connects Node, Interpreter, and Branch using Node.ip, Interpreter.root, and the base class of Branch?",
+      "question": "What type-dependency cycle connects Node, Interpreter, and Branch?",
       "expected_facts": [
         {
           "id": "fact:markov-cycle-1",
@@ -193,7 +193,7 @@
       "schema_version": "archie.benchmark-question.v1",
       "schema_revision": 2,
       "id": "question:markov-insufficient",
-      "question": "Which PostgreSQL schema does MarkovJunior use to store execution state?",
+      "question": "Which database schema does MarkovJunior use to store execution state?",
       "expected_facts": [],
       "dependency_depth": 0,
       "category": "insufficient_evidence",
