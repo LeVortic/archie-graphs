@@ -72,7 +72,7 @@ Acceptable source regions: App/Controller.cs:10-11, Core/Service.cs:4-7.
 
 ### question:fixture-reverse
 
-Which indexed types directly depend on the type Fixture.Core.IService, and through which relationships?
+Which indexed types directly depend on the type Fixture.Core.IService?
 
 Subset: control; category: reverse_dependency; depth: 1; expected action: answer.
 
@@ -108,7 +108,7 @@ Review note: Intentionally unresolvable identifier. Expect insufficient evidence
 
 ### question:fixture-insufficient
 
-Which PostgreSQL schema stores Controller state in this fixture?
+Which database schema stores Controller state in this fixture?
 
 Subset: control; category: insufficient_evidence; depth: 0; expected action: abstain.
 
@@ -124,7 +124,7 @@ Source content hash: `sha256:b2534eee221ce2ad219b05235864e77cda3fff0d04e42e9b94d
 
 ### question:markov-loop
 
-What is the loop condition in Interpreter.Run, including the meaning of a non-positive steps value?
+What is the loop condition in Interpreter.Run?
 
 Subset: control; category: local_fact; depth: 0; expected action: answer.
 
@@ -132,6 +132,16 @@ Subset: control; category: local_fact; depth: 0; expected action: answer.
 - It also requires steps <= 0 or counter < steps; non-positive steps remove the step-count bound.
 
 Acceptable source regions: source/Interpreter.cs:63-78.
+
+### question:markov-initialization
+
+How is execution initialized and when does its main loop stop?
+Subset: control; category: local_fact; depth: 0; expected action: answer.
+
+- execution starts when a tree or a set of nodes are defined.
+- main loop stops after reaching the last node of the tree or when no more nodes are available(?).
+
+Acceptable source regions: pending revision.
 
 ### question:markov-initialization
 
