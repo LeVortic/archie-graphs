@@ -192,6 +192,8 @@ An offline CUDA smoke test on MarkovJunior answered `Interpreter.Load -> Node.Fa
 
 ## Draft benchmarks and paired evaluation
 
+See [why MarkovJunior is used for benchmarking](benchmarks/MARKOVJUNIOR.md) for the selection rationale, architectural coverage, limitations and original project citation.
+
 The primary research focus is factual correctness on multi-hop C# architecture questions. The draft wording, labels, and proposed human fact-F1 protocol are in [benchmarks/REVIEW.md](benchmarks/REVIEW.md) and [benchmarks/PROTOCOL.md](benchmarks/PROTOCOL.md). Both benchmark JSON files are still `draft`. Their sixteen development questions include five multi-hop calibration questions and eleven controls; they are not a held-out research dataset. Some were used during earlier smoke tests.
 
 Human involvement is required before research runs: review wording, atomic expected facts, depth/category labels, source regions, abstention policy, and scoring rules. Only after explicit review should a benchmark's review status become `approved` with a non-empty reviewer and an ISO-8601 review date. A source content hash freezes each indexed project. The fixture also records a project Git revision; this vendored MarkovJunior snapshot has no verified upstream Git revision, which is recorded as null rather than invented.
