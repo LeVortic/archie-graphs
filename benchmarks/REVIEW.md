@@ -72,7 +72,7 @@ Acceptable source regions: App/Controller.cs:10-11, Core/Service.cs:4-7.
 
 ### question:fixture-reverse
 
-Which types directly depend on Fixture.Core.IService and through which relationships??
+Which types directly depend on Fixture.Core.IService, and through which relationships?
 
 Subset: control; category: reverse_dependency; depth: 1; expected action: answer.
 
@@ -124,24 +124,16 @@ Source content hash: `sha256:b2534eee221ce2ad219b05235864e77cda3fff0d04e42e9b94d
 
 ### question:markov-loop
 
-What is the loop condition in Interpreter.Run?
-
-Subset: control; category: local_fact; depth: 0; expected action: answer.
-
-- The loop requires current to be non-null.
-- It also requires steps <= 0 or counter < steps; non-positive steps remove the step-count bound.
-
-Acceptable source regions: source/Interpreter.cs:63-78.
-
-### question:markov-initialization
-
 How is execution initialized and when does its main loop stop?
+
 Subset: control; category: local_fact; depth: 0; expected action: answer.
 
-- execution starts when a tree or a set of nodes are defined.
-- main loop stops after reaching the last node of the tree or when no more nodes are available(?).
+- Execution is initialized by setting the root node, it requires current to be non-null.
+- in the while loop: while (current != null && (steps <= 0 || counter < steps))
 
-Acceptable source regions: pending revision.
+Acceptable source regions: source/Interpreter.cs:60-78.
+
+Review note: Mentioning loop makes the LLM focus both answers on it, rather than look for the execution of the whole program
 
 ### question:markov-initialization
 
@@ -164,7 +156,7 @@ Subset: control; category: dependency; depth: 1; expected action: answer.
 - Interpreter.Load calls Grid.Load with xelem and the MX, MY, MZ dimensions.
 - A null grid causes a failure message and a null return.
 
-Acceptable source regions: source/Interpreter.cs:23-33.
+Acceptable source regions: source/Interpreter.cs:23-44.
 
 ### question:markov-static-path
 
@@ -191,7 +183,7 @@ Acceptable source regions: source/Node.cs:57-76.
 
 ### question:markov-inheritance
 
-How do SequenceNode and MarkovNode reach Node through inheritance?
+How do SequenceNode and MarkovNode reach Node?
 
 Subset: primary multi-hop; category: path; depth: 2; expected action: answer.
 
@@ -203,7 +195,7 @@ Acceptable source regions: source/Node.cs:51-55, source/Node.cs:99-103.
 
 ### question:markov-cycle
 
-What type-dependency cycle connects Node, Interpreter, and Branch using Node.ip, Interpreter.root, and the base class of Branch?
+What type-dependency cycle connects Node, Interpreter, and Branch?
 
 Subset: primary multi-hop; category: cycle; depth: 3; expected action: answer.
 
