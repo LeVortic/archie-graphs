@@ -11,8 +11,8 @@
   },
   "review": {
     "status": "approved",
-    "reviewer": "Victor",
-    "reviewed_at": "2026-11-10T10:22:32.855283+00:00"
+    "reviewer": "Victor; Rosa Cortes",
+    "reviewed_at": "2026-11-14T01:07:32.465000+00:00"
   },
   "questions": [
     {
@@ -171,6 +171,68 @@
       "expected_action": "abstain",
       "acceptable_citations": [],
       "review_notes": "Expect abstention from supplied evidence; do not require a claim that PostgreSQL is absent everywhere."
+    },
+    {
+      "schema_version": "archie.benchmark-question.v1",
+      "schema_revision": 2,
+      "id": "question:fixture-rc-run-declarations",
+      "question": "Which types in Fixture.Core declare a Run method, and how?",
+      "expected_facts": [
+        {
+          "id": "fact:fixture-rc-run-declarations-1",
+          "text": "IService declares Run as an interface method."
+        },
+        {
+          "id": "fact:fixture-rc-run-declarations-2",
+          "text": "BaseService declares Run as virtual."
+        },
+        {
+          "id": "fact:fixture-rc-run-declarations-3",
+          "text": "Service overrides Run."
+        }
+      ],
+      "dependency_depth": 0,
+      "category": "local_fact",
+      "expected_action": "answer",
+      "acceptable_citations": [
+        "Core/Service.cs:3-7"
+      ],
+      "review_notes": "Added by Rosa Cortes on 2026-11-14; drafted with Claude and manually verified against the source; not used during development."
+    },
+    {
+      "schema_version": "archie.benchmark-question.v1",
+      "schema_revision": 2,
+      "id": "question:fixture-rc-service-dependents",
+      "question": "Which types directly depend on Fixture.Core.Service, and through which relationships?",
+      "expected_facts": [
+        {
+          "id": "fact:fixture-rc-service-dependents-1",
+          "text": "Controller depends on Service through constructor use in Create (new Service())."
+        },
+        {
+          "id": "fact:fixture-rc-service-dependents-2",
+          "text": "Controller also creates a Service with target-typed new() in CreateImplicit."
+        }
+      ],
+      "dependency_depth": 1,
+      "category": "reverse_dependency",
+      "expected_action": "answer",
+      "acceptable_citations": [
+        "App/Controller.cs:10-11"
+      ],
+      "review_notes": "Return types are not extracted relationships. Reverse question: graph evidence currently follows outgoing relationships only. Added by Rosa Cortes on 2026-11-14; drafted with Claude and manually verified against the source; not used during development."
+    },
+    {
+      "schema_version": "archie.benchmark-question.v1",
+      "schema_revision": 2,
+      "id": "question:fixture-rc-insufficient",
+      "question": "Which logging library does Fixture.App use?",
+      "expected_facts": [],
+      "dependency_depth": 0,
+      "category": "insufficient_evidence",
+      "expected_action": "abstain",
+      "acceptable_citations": [],
+      "review_notes": "Expect abstention from supplied evidence; do not require a claim that logging is absent everywhere. Added by Rosa Cortes on 2026-11-14; drafted with Claude and manually verified against the source; not used during development."
     }
   ]
 }
