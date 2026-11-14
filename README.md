@@ -15,7 +15,17 @@ dotnet build fixtures/csharp/Fixture.sln
 .venv/bin/archie index fixtures/csharp/Fixture.sln
 ```
 
-Use an editable source install for this milestone: the CLI locates the built extractor beside the Python source. Standalone wheel deployment is not supported yet. Integration tests skip explicitly if the extractor has not been built.
+Use an editable source install for this milestone: the CLI locates the built extractor beside the Python source. Standalone wheel deployment is not supported yet. Integration tests skip explicitly if the extractor has not been built; set `ARCHIE_REQUIRE_INTEGRATION=1` to make such a skip fail instead.
+
+For a reproducible environment, install the exact versions used by CI instead of the ranges above. `global.json` selects a .NET 10 SDK, and the extractor's `packages.lock.json` pins its NuGet packages:
+
+```sh
+.venv/bin/python -m pip install -r requirements-lock.txt
+.venv/bin/python -m pip install --no-deps -e .
+dotnet restore extractor/ArchiE.Extractor/ArchiE.Extractor.csproj --locked-mode
+```
+
+GitHub Actions (`.github/workflows/ci.yml`) runs these steps on every push and pull request from a clean checkout. It builds the extractor and the fixture, runs the test suite with `ARCHIE_REQUIRE_INTEGRATION=1`, and fails if the run leaves changes in the working tree. Optional retrieval and answering models are not installed in CI. Tests that need them are skipped, and that skip is not a failure.
 
 The SDK installation used during development reports `NETSDK1226` and cannot resolve its distro-specific apphost. On that installation, both build commands need:
 

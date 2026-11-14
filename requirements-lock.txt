@@ -1,0 +1,17 @@
+# Exact versions for CI and reproducible test environments (Python 3.12).
+# Resolved from pyproject.toml core dependencies plus requirements-dev.txt; regenerate in a clean venv:
+#   pip install . -r requirements-dev.txt && pip freeze --exclude archie-graphs
+# Optional retrieval/answering extras are not included.
+attrs==26.1.0
+filelock==4.2.10
+iniconfig==2.3.1
+jsonschema==4.26.0
+jsonschema-specifications==2025.9.1
+networkx==3.7
+packaging==26.3
+pluggy==1.7.0
+Pygments==2.21.0
+pytest==8.4.2
+referencing==0.37.0
+rpds-py==2026.9.1
+typing_extensions==4.16.0

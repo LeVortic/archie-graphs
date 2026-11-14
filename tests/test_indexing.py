@@ -90,6 +90,7 @@ def test_cli_missing_input(tmp_path, capsys):
     assert json.loads(capsys.readouterr().err)["status"] == "failed"
 
 
+@pytest.mark.integration
 @pytest.mark.skipif(not ASSEMBLY.is_file(), reason="Build the Roslyn extractor before integration tests")
 def test_roslyn_fixture_end_to_end(tmp_path):
     solution = ROOT / "fixtures/csharp/Fixture.sln"
@@ -146,6 +147,7 @@ def test_roslyn_fixture_end_to_end(tmp_path):
         assert evidence == {7: "IService", 8: "IService", 10: "new Service()", 11: "new()"}[span["start_line"]]
 
 
+@pytest.mark.integration
 @pytest.mark.skipif(not ASSEMBLY.is_file(), reason="Build the Roslyn extractor before integration tests")
 def test_unresolved_call_is_diagnostic_not_edge(tmp_path):
     project = tmp_path / "Broken.csproj"
@@ -159,6 +161,7 @@ def test_unresolved_call_is_diagnostic_not_edge(tmp_path):
     assert result["edges"] == []
 
 
+@pytest.mark.integration
 @pytest.mark.skipif(not ASSEMBLY.is_file(), reason="Build the Roslyn extractor before integration tests")
 def test_unresolved_dependencies_remain_diagnostics(tmp_path):
     project = tmp_path / "Broken.csproj"
@@ -174,6 +177,7 @@ def test_unresolved_dependencies_remain_diagnostics(tmp_path):
     assert result["edges"] == []
 
 
+@pytest.mark.integration
 @pytest.mark.skipif(not ASSEMBLY.is_file(), reason="Build the Roslyn extractor before integration tests")
 @pytest.mark.parametrize("field_type", ["Target[]", "Target[,]", "dynamic"])
 def test_unindexed_field_types_do_not_crash_symbol_lookup(tmp_path, field_type):
