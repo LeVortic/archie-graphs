@@ -11,6 +11,7 @@ Author and reviewer: Rosa Cortes · Date: 14 November 2026 · Benchmarks: `fixtu
 - **When both modes answered, quality was the same.** On the 9 questions both modes answered, 8 were ties and source mode was better on 1 (`markov-cycle`). The graph benefit seen here is coverage, not answer quality.
 - **The graph benefit costs context.** Graph mode used about twice the context (3,773 vs 1,928 Qwen tokens per answer), took about 3 s longer per answer end to end, and cost about 66% more in equivalent API cost.
 - **Most remaining errors are retrieval misses.** Three answerable MarkovJunior questions were abstained on in both modes because the lines that hold the answer were never retrieved.
+- **Earlier Qwen3-4B runs got identical evidence.** On those runs, Qwen made one unsupported claim and gave more partial answers. Clean precision is partly a property of Claude ([comparison](#qualitative-comparison-with-the-earlier-qwen3-4b-runs)).
 - **These are development results, not research evidence.** The sample is small and comes from one reviewer and one model run. The answering model was Claude, not the project's Qwen3-4B. Victor's questions were used during development. See [Limitations](#limitations).
 
 ## Scope
@@ -183,6 +184,19 @@ Usage records were matched to answers by position in the run's `execution_order`
 5. **Graph evidence follows outgoing relationships only.** `archie/graph_evidence.py` (`nearby_paths`) expands seeds with `query_neighborhood` in the outgoing direction only. Reverse-dependency questions therefore get no incoming edges, as in `fixture-reverse`, where the `Controller → IService` edges were missing. Those questions were still answered from source excerpts. Depth-3 paths (`markov-rc-overlap-path`) were also incomplete. Including incoming neighbourhoods and reviewing the depth limit are the two most direct ways to improve graph mode.
 6. **Graph mode sometimes adds nothing.** In `fixture-rc-run-declarations`, the graph context had no paths and was the same size as the source context.
 7. **The cost is roughly double the context for this coverage gain.** On MarkovJunior, graph mode sent 1.96× the context and cost 1.66× as much, and pipeline latency rose by 3 s per answer.
+
+## Qualitative comparison with the earlier Qwen3-4B runs
+
+Victor's earlier Qwen3-4B runs answered Victor's 8 development questions on each benchmark: `run:c0fe32b074bb44e991378e86aab4452d` (fixture) and `run:3c829674c0f34f948e5acee6170f1259` (MarkovJunior). Rosa reviewed those runs qualitatively on 11 November 2026, in the walkthrough files `WALKTHROUGH-fixture.md` and `WALKTHROUGH-markovjr.md`, which are not in this repository. Those grades say whether an answer is correct, partial or incorrect, and whether its citations support it. They are not atomic-fact F1. **This section is a qualitative comparison only; the Qwen and Claude numbers are not pooled.**
+
+- **Both models received the same evidence.** The context-token counts per answer match the Claude runs exactly, for example 2,023 / 3,876 tokens for `markov-loop` and 469 / 905 for `fixture-interface` (source / graph). Retrieval and graph selection are deterministic for a given index and question, so differences between the runs come from the answering model.
+- **The source-mode retrieval miss is model-independent.** In `markov-static-path`, both Qwen and Claude abstained in source mode and answered correctly in graph mode. The evidence, not the model, decides this case.
+- **Qwen invented an answer where Claude abstained.** In graph mode on `fixture-insufficient`, Qwen made a claim about the "database schema" and cited `Controller.cs`. Rosa graded this as a failed abstention with an unsupported claim. Claude abstained correctly in both modes on all five unanswerable questions.
+- **Qwen gave more partial and incorrect answers on the fixture.** It answered `fixture-base-path` incorrectly in source mode (through `IService` injection instead of `Service → BaseService`). It was partial on `fixture-reverse` in both modes, where it missed that `Service` implements `IService`. Claude recovered every fact on these questions.
+- **Both models are distracted on the cycle question.** On `markov-cycle`, Qwen's graph answer cited `MarkovNode` constructor-use edges instead of the `Node → Interpreter → Branch → Node` cycle. Claude's graph answer was also pulled towards unrelated edges (Finding 4). In both runs this question was partial in both modes.
+- **Qwen's citations were weaker.** Several of its answers were correct but cited the wrong region or an unreadable graph path. No Claude claim was graded unsupported.
+
+The 100% precision in this report is therefore partly a property of Claude. A 4B model given the same evidence makes unsupported claims, so the protocol's separate counting of incorrect and unsupported claims matters for the formal Qwen runs.
 
 ## Review observations
 
