@@ -210,15 +210,15 @@ def test_question_subset_and_unknown_selection(experiment):
     with pytest.raises(ValueError): run(experiment, output="bad", question_ids=["question:missing"])
 
 
-def test_checked_in_benchmarks_are_drafts_with_distinct_labels():
+def test_checked_in_benchmarks_are_approved_with_distinct_labels():
     questions = []
-    for name in ("fixture", "markovjunior"):
+    for name, count in (("fixture", 11), ("markovjunior", 18)):
         path = ROOT / f"benchmarks/{name}-v1.json"
-        with pytest.raises(ValueError, match="pending"): load_benchmark(path)
-        benchmark = load_benchmark(path, allow_draft=True)
-        assert benchmark["split"] == "development" and len(benchmark["questions"]) == 8
+        benchmark = load_benchmark(path)
+        assert benchmark["review"]["status"] == "approved" and benchmark["review"]["reviewer"].strip()
+        assert benchmark["split"] == "development" and len(benchmark["questions"]) == count
         questions += benchmark["questions"]
-    assert len({question["id"] for question in questions}) == 16
+    assert len({question["id"] for question in questions}) == 29
     assert {0, 1, 2, 3} <= {question["dependency_depth"] for question in questions}
 
 
@@ -294,3 +294,20 @@ def test_resume_rejects_tampered_answer_identity(experiment):
     with pytest.raises(ValueError, match="question or index"):
         run(experiment)
     assert path.read_bytes() == before
+
+
+def test_held_out_benchmarks_are_frozen_and_distinct_from_development():
+    import hashlib
+    import re
+    frozen = dict(re.findall(r"\| `([\w.-]+\.json)` \|.*\| `([0-9a-f]{64})` \|", (ROOT / "benchmarks/HELDOUT.md").read_text()))
+    assert set(frozen) == {"fixture-heldout-v1.json", "markovjunior-heldout-v1.json"}
+    development_ids = {question["id"] for name in ("fixture", "markovjunior")
+                       for question in load_benchmark(ROOT / f"benchmarks/{name}-v1.json")["questions"]}
+    for name, digest in frozen.items():
+        path = ROOT / "benchmarks" / name
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == digest, f"{name} changed after it was frozen"
+        benchmark = load_benchmark(path)
+        development = load_benchmark(ROOT / f"benchmarks/{name.replace('-heldout', '')}")
+        assert benchmark["split"] == "held_out" and benchmark["review"]["status"] == "approved"
+        assert benchmark["source"] == development["source"]
+        assert not {question["id"] for question in benchmark["questions"]} & development_ids

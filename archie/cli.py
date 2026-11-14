@@ -10,6 +10,7 @@ from pathlib import Path
 from jsonschema import ValidationError
 
 from .application import index_solution
+from .analysis import analyze_to_file
 from .evaluation import evaluate, load_benchmark
 from .embeddings import SentenceEmbedder
 from .language_model import QwenModel
@@ -81,6 +82,13 @@ def main(argv=None):
         command.add_argument("--max-new-tokens", type=int, default=1024)
         command.add_argument("--timeout", type=float, default=180)
         command.add_argument("--device", choices=("auto", "cpu", "cuda"), default="auto")
+    analysis = commands.add_parser("analyze", help="Score a completed, human-reviewed evaluation run")
+    analysis.add_argument("run", help="Run directory containing experiment.json")
+    analysis.add_argument("--review", required=True, help="Completed review JSON for the run")
+    analysis.add_argument("--benchmark", required=True, help="Benchmark JSON used by the run")
+    analysis.add_argument("--output", required=True, help="Analysis JSON to write (inputs are never modified)")
+    analysis.add_argument("--subset", action="append", default=[], metavar="NAME=REGEX",
+                          help="Extra group of question IDs matching REGEX; repeatable")
     inspect = commands.add_parser("inspect", help="Query a published index")
     queries = inspect.add_subparsers(dest="query", required=True)
     for name in ("dependencies", "dependents"):
@@ -169,6 +177,10 @@ def main(argv=None):
             print(json.dumps({"status": summary["status"], "run_id": summary["run_id"],
                               "path": str(Path(args.output).resolve()), "factual_grading": summary["factual_grading"]}))
             return 1 if any(mode["failed"] or mode["citation_error_records"] for mode in summary["modes"].values()) else 0
+        elif args.command == "analyze":
+            subsets = dict(value.split("=", 1) for value in args.subset)
+            result = analyze_to_file(Path(args.run) / "experiment.json", args.review, args.benchmark, args.output, subsets)
+            print(json.dumps({"status": "complete", "run_id": result["run_id"], "path": str(Path(args.output).resolve())}))
         else:
             graph = load_graph(args.index)
             if args.query in {"dependencies", "dependents"}:

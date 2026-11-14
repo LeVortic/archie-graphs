@@ -10,7 +10,7 @@ Does source-backed dependency-graph context improve factual correctness on multi
 
 Primary subset: questions annotated dependency_depth >= 2. Proposed primary metric: macro-average human-annotated atomic-fact F1 on that subset, with precision and recall reported separately. See PROTOCOL.md for the review procedure and edge cases. This scoring definition is proposed, not yet approved.
 
-The development packet currently contains five primary multi-hop questions and eleven controls. It is not a sufficient held-out research dataset. Some questions were used during development; do not report them as held-out evidence.
+The packet contains 29 questions. Sixteen development questions (five primary multi-hop, eleven controls) were written by the project owner; some were used during development, so do not report them as held-out evidence. Thirteen further questions (IDs containing `-rc-`; three primary multi-hop, ten controls) were added by a second reviewer, Rosa Cortes, who did not take part in development; they were drafted with Claude, manually verified against the source and not used to tune retrieval, graph selection or prompts. This is still not a sufficient held-out research dataset.
 
 ## Your review
 
@@ -72,7 +72,7 @@ Acceptable source regions: App/Controller.cs:10-11, Core/Service.cs:4-7.
 
 ### question:fixture-reverse
 
-Which types directly depend on Fixture.Core.IService and through which relationships??
+Which types directly depend on Fixture.Core.IService, and through which relationships?
 
 Subset: control; category: reverse_dependency; depth: 1; expected action: answer.
 
@@ -118,30 +118,61 @@ Acceptable source regions: none required for abstention.
 
 Review note: Expect abstention from supplied evidence; do not require a claim that PostgreSQL is absent everywhere.
 
+### question:fixture-rc-run-declarations
+
+Which types in Fixture.Core declare a Run method, and how?
+
+Subset: control; category: local_fact; depth: 0; expected action: answer.
+
+- IService declares Run as an interface method.
+- BaseService declares Run as virtual.
+- Service overrides Run.
+
+Acceptable source regions: Core/Service.cs:3-7.
+
+Review note: Added by Rosa Cortes on 2026-11-14; drafted with Claude and manually verified against the source; not used during development.
+
+### question:fixture-rc-service-dependents
+
+Which types directly depend on Fixture.Core.Service, and through which relationships?
+
+Subset: control; category: reverse_dependency; depth: 1; expected action: answer.
+
+- Controller depends on Service through constructor use in Create (new Service()).
+- Controller also creates a Service with target-typed new() in CreateImplicit.
+
+Acceptable source regions: App/Controller.cs:10-11.
+
+Review note: Return types are not extracted relationships. Reverse question: graph evidence currently follows outgoing relationships only. Added by Rosa Cortes on 2026-11-14; drafted with Claude and manually verified against the source; not used during development.
+
+### question:fixture-rc-insufficient
+
+Which logging library does Fixture.App use?
+
+Subset: control; category: insufficient_evidence; depth: 0; expected action: abstain.
+
+- Abstain: supplied evidence cannot establish the requested fact.
+
+Acceptable source regions: none required for abstention.
+
+Review note: Expect abstention from supplied evidence; do not require a claim that logging is absent everywhere. Added by Rosa Cortes on 2026-11-14; drafted with Claude and manually verified against the source; not used during development.
+
 ## markovjunior
 
 Source content hash: `sha256:b2534eee221ce2ad219b05235864e77cda3fff0d04e42e9b94dd70b3c9e03db1`
 
 ### question:markov-loop
 
-What is the loop condition in Interpreter.Run?
-
-Subset: control; category: local_fact; depth: 0; expected action: answer.
-
-- The loop requires current to be non-null.
-- It also requires steps <= 0 or counter < steps; non-positive steps remove the step-count bound.
-
-Acceptable source regions: source/Interpreter.cs:63-78.
-
-### question:markov-initialization
-
 How is execution initialized and when does its main loop stop?
+
 Subset: control; category: local_fact; depth: 0; expected action: answer.
 
-- execution starts when a tree or a set of nodes are defined.
-- main loop stops after reaching the last node of the tree or when no more nodes are available(?).
+- Execution is initialized by setting the root node, it requires current to be non-null.
+- in the while loop: while (current != null && (steps <= 0 || counter < steps))
 
-Acceptable source regions: pending revision.
+Acceptable source regions: source/Interpreter.cs:60-78.
+
+Review note: Mentioning loop makes the LLM focus both answers on it, rather than look for the execution of the whole program
 
 ### question:markov-initialization
 
@@ -164,7 +195,7 @@ Subset: control; category: dependency; depth: 1; expected action: answer.
 - Interpreter.Load calls Grid.Load with xelem and the MX, MY, MZ dimensions.
 - A null grid causes a failure message and a null return.
 
-Acceptable source regions: source/Interpreter.cs:23-33.
+Acceptable source regions: source/Interpreter.cs:23-44.
 
 ### question:markov-static-path
 
@@ -191,7 +222,7 @@ Acceptable source regions: source/Node.cs:57-76.
 
 ### question:markov-inheritance
 
-How do SequenceNode and MarkovNode reach Node through inheritance?
+How do SequenceNode and MarkovNode reach Node?
 
 Subset: primary multi-hop; category: path; depth: 2; expected action: answer.
 
@@ -203,7 +234,7 @@ Acceptable source regions: source/Node.cs:51-55, source/Node.cs:99-103.
 
 ### question:markov-cycle
 
-What type-dependency cycle connects Node, Interpreter, and Branch using Node.ip, Interpreter.root, and the base class of Branch?
+What type-dependency cycle connects Node, Interpreter, and Branch?
 
 Subset: primary multi-hop; category: cycle; depth: 3; expected action: answer.
 
@@ -226,3 +257,133 @@ Subset: control; category: insufficient_evidence; depth: 0; expected action: abs
 Acceptable source regions: none required for abstention.
 
 Review note: Used in earlier smoke tests; an abstention check, not a held-out generalization claim.
+
+### question:markov-rc-overlap-path
+
+How does OverlapNode reach Node?
+
+Subset: primary multi-hop; category: path; depth: 3; expected action: answer.
+
+- OverlapNode inherits WFCNode.
+- WFCNode inherits Branch.
+- Branch inherits Node.
+
+Acceptable source regions: source/OverlapModel.cs:8-8, source/WaveFunctionCollapse.cs:7-7, source/Node.cs:51-51.
+
+Review note: Needs three inheritance relationships, which exceeds the graph context single-path depth of two; multiple supplied paths may be needed. Added by Rosa Cortes on 2026-11-14; drafted with Claude and manually verified against the source; not used during development.
+
+### question:markov-rc-rulenode-subclasses
+
+Which classes inherit directly from RuleNode?
+
+Subset: control; category: reverse_dependency; depth: 1; expected action: answer.
+
+- OneNode inherits RuleNode.
+- AllNode inherits RuleNode.
+- ParallelNode inherits RuleNode.
+
+Acceptable source regions: source/OneNode.cs:7-7, source/AllNode.cs:8-8, source/ParallelNode.cs:5-5.
+
+Review note: Reverse question: graph evidence currently follows outgoing relationships only, so answers may rely on source excerpts. Added by Rosa Cortes on 2026-11-14; drafted with Claude and manually verified against the source; not used during development.
+
+### question:markov-rc-main-grid-path
+
+What static call path connects Program.Main to Grid.Load?
+
+Subset: primary multi-hop; category: path; depth: 2; expected action: answer.
+
+- Program.Main calls Interpreter.Load.
+- Interpreter.Load calls Grid.Load.
+
+Acceptable source regions: source/Program.cs:40-40, source/Interpreter.cs:27-27.
+
+Review note: Added by Rosa Cortes on 2026-11-14; drafted with Claude and manually verified against the source; not used during development.
+
+### question:markov-rc-run-go-path
+
+What static call path connects Interpreter.Run to Node.Go?
+
+Subset: primary multi-hop; category: path; depth: 2; expected action: answer.
+
+- Interpreter.Run calls Branch.Go through current.Go().
+- Branch.Go calls Node.Go through node.Go() on each child node.
+
+Acceptable source regions: source/Interpreter.cs:9-9, source/Interpreter.cs:76-76, source/Node.cs:51-51, source/Node.cs:79-85.
+
+Review note: Static symbol resolution; runtime overrides such as RuleNode.Go are not required facts. Added by Rosa Cortes on 2026-11-14; drafted with Claude and manually verified against the source; not used during development.
+
+### question:markov-rc-search-caller
+
+Which method calls Search.Run, and when?
+
+Subset: control; category: reverse_dependency; depth: 1; expected action: answer.
+
+- RuleNode.Go calls Search.Run.
+- Search.Run is called only when observations is not null, futureComputed is false, ComputeFutureSetPresent returns true, and the search flag is enabled.
+
+Acceptable source regions: source/RuleNode.cs:124-141.
+
+Review note: Reverse question: graph evidence currently follows outgoing relationships only. Added by Rosa Cortes on 2026-11-14; drafted with Claude and manually verified against the source; not used during development.
+
+### question:markov-rc-branch-self
+
+Which class has a field whose type is the same class?
+
+Subset: control; category: cycle; depth: 1; expected action: answer.
+
+- Branch has a field named parent of type Branch.
+
+Acceptable source regions: source/Node.cs:53-53.
+
+Review note: A self-loop field_use relationship. Added by Rosa Cortes on 2026-11-14; drafted with Claude and manually verified against the source; not used during development.
+
+### question:markov-rc-wfc-factory
+
+Which node classes does Node.Factory create for a wfc element?
+
+Subset: control; category: local_fact; depth: 0; expected action: answer.
+
+- With a sample attribute it creates an OverlapNode.
+- With a tileset attribute it creates a TileNode.
+
+Acceptable source regions: source/Node.cs:35-36.
+
+Review note: Added by Rosa Cortes on 2026-11-14; drafted with Claude and manually verified against the source; not used during development.
+
+### question:markov-rc-rulenode-loads
+
+Which helper objects does RuleNode create while loading field and observe elements?
+
+Subset: control; category: dependency; depth: 1; expected action: answer.
+
+- It creates a Field for each field element.
+- It creates an Observation for each observe element.
+
+Acceptable source regions: source/RuleNode.cs:65-72, source/RuleNode.cs:82-89.
+
+Review note: RuleNode stores them in array fields (Field[], Observation[]); array field types are not extracted, but the constructor_use relationships are. Added by Rosa Cortes on 2026-11-14; drafted with Claude and manually verified against the source; not used during development.
+
+### question:markov-rc-output
+
+How does Program.Main save each result?
+
+Subset: control; category: dependency; depth: 1; expected action: answer.
+
+- For 2D results (FZ == 1) or when iso is set, it renders with Graphics.Render and saves a PNG with Graphics.SaveBitmap.
+- Otherwise it saves a VOX file with VoxHelper.SaveVox.
+
+Acceptable source regions: source/Program.cs:67-73.
+
+Review note: Added by Rosa Cortes on 2026-11-14; drafted with Claude and manually verified against the source; not used during development.
+
+### question:markov-rc-insufficient
+
+Which HTTP endpoint does MarkovJunior use to download its models?
+
+Subset: control; category: insufficient_evidence; depth: 0; expected action: abstain.
+
+- Abstain: supplied evidence cannot establish the requested fact.
+
+Acceptable source regions: none required for abstention.
+
+Review note: Expect abstention. Stating that the excerpts show models loaded from local XML files is acceptable; an invented endpoint is not. Added by Rosa Cortes on 2026-11-14; drafted with Claude and manually verified against the source; not used during development.

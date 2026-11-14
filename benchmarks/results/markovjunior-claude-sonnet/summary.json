@@ -1,0 +1,329 @@
+{
+  "run_id": "run:9c49bc6497544c39a308347fc6f46454",
+  "status": "complete",
+  "benchmark_version": "markovjunior-development-v1",
+  "benchmark_review": "approved",
+  "factual_grading": "pending_human_review",
+  "modes": {
+    "source": {
+      "attempts": 18,
+      "succeeded": 18,
+      "failed": 0,
+      "answered": 9,
+      "abstained": 9,
+      "citations_checked": 20,
+      "citations_valid": 20,
+      "citations_invalid": 0,
+      "citation_error_records": 0,
+      "mean_context_tokens": 1927.611111111111,
+      "mean_output_tokens": 380.6666666666667,
+      "mean_latency_ms": 7328.379734888787,
+      "mean_pipeline_latency_ms": 12037.049234166463
+    },
+    "graph": {
+      "attempts": 18,
+      "succeeded": 18,
+      "failed": 0,
+      "answered": 13,
+      "abstained": 5,
+      "citations_checked": 52,
+      "citations_valid": 52,
+      "citations_invalid": 0,
+      "citation_error_records": 0,
+      "mean_context_tokens": 3773.4444444444443,
+      "mean_output_tokens": 549.8333333333334,
+      "mean_latency_ms": 7848.633789722347,
+      "mean_pipeline_latency_ms": 15076.730717444863
+    }
+  },
+  "citation_checks": [
+    {
+      "question_id": "question:markov-rc-run-go-path",
+      "mode": "source",
+      "checked": 0,
+      "valid": 0,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:markov-rc-run-go-path",
+      "mode": "graph",
+      "checked": 0,
+      "valid": 0,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:markov-rc-rulenode-subclasses",
+      "mode": "graph",
+      "checked": 5,
+      "valid": 5,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:markov-rc-rulenode-subclasses",
+      "mode": "source",
+      "checked": 4,
+      "valid": 4,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:markov-insufficient",
+      "mode": "source",
+      "checked": 0,
+      "valid": 0,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:markov-insufficient",
+      "mode": "graph",
+      "checked": 0,
+      "valid": 0,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:markov-rc-output",
+      "mode": "graph",
+      "checked": 5,
+      "valid": 5,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:markov-rc-output",
+      "mode": "source",
+      "checked": 0,
+      "valid": 0,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:markov-loop",
+      "mode": "source",
+      "checked": 3,
+      "valid": 3,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:markov-loop",
+      "mode": "graph",
+      "checked": 6,
+      "valid": 6,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:markov-rc-insufficient",
+      "mode": "graph",
+      "checked": 0,
+      "valid": 0,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:markov-rc-insufficient",
+      "mode": "source",
+      "checked": 0,
+      "valid": 0,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:markov-reverse",
+      "mode": "source",
+      "checked": 2,
+      "valid": 2,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:markov-reverse",
+      "mode": "graph",
+      "checked": 2,
+      "valid": 2,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:markov-rc-branch-self",
+      "mode": "graph",
+      "checked": 0,
+      "valid": 0,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:markov-rc-branch-self",
+      "mode": "source",
+      "checked": 0,
+      "valid": 0,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:markov-rc-overlap-path",
+      "mode": "source",
+      "checked": 1,
+      "valid": 1,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:markov-rc-overlap-path",
+      "mode": "graph",
+      "checked": 2,
+      "valid": 2,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:markov-rc-wfc-factory",
+      "mode": "graph",
+      "checked": 7,
+      "valid": 7,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:markov-rc-wfc-factory",
+      "mode": "source",
+      "checked": 0,
+      "valid": 0,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:markov-grid",
+      "mode": "source",
+      "checked": 1,
+      "valid": 1,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:markov-grid",
+      "mode": "graph",
+      "checked": 1,
+      "valid": 1,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:markov-rc-rulenode-loads",
+      "mode": "graph",
+      "checked": 1,
+      "valid": 1,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:markov-rc-rulenode-loads",
+      "mode": "source",
+      "checked": 0,
+      "valid": 0,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:markov-inheritance",
+      "mode": "source",
+      "checked": 2,
+      "valid": 2,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:markov-inheritance",
+      "mode": "graph",
+      "checked": 6,
+      "valid": 6,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:markov-rc-search-caller",
+      "mode": "graph",
+      "checked": 1,
+      "valid": 1,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:markov-rc-search-caller",
+      "mode": "source",
+      "checked": 1,
+      "valid": 1,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:markov-static-path",
+      "mode": "source",
+      "checked": 0,
+      "valid": 0,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:markov-static-path",
+      "mode": "graph",
+      "checked": 3,
+      "valid": 3,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:markov-rc-main-grid-path",
+      "mode": "graph",
+      "checked": 0,
+      "valid": 0,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:markov-rc-main-grid-path",
+      "mode": "source",
+      "checked": 0,
+      "valid": 0,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:markov-cycle",
+      "mode": "source",
+      "checked": 5,
+      "valid": 5,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:markov-cycle",
+      "mode": "graph",
+      "checked": 11,
+      "valid": 11,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:markov-initialization",
+      "mode": "graph",
+      "checked": 2,
+      "valid": 2,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:markov-initialization",
+      "mode": "source",
+      "checked": 1,
+      "valid": 1,
+      "invalid": 0,
+      "errors": []
+    }
+  ]
+}

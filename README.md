@@ -15,7 +15,17 @@ dotnet build fixtures/csharp/Fixture.sln
 .venv/bin/archie index fixtures/csharp/Fixture.sln
 ```
 
-Use an editable source install for this milestone: the CLI locates the built extractor beside the Python source. Standalone wheel deployment is not supported yet. Integration tests skip explicitly if the extractor has not been built.
+Use an editable source install for this milestone: the CLI locates the built extractor beside the Python source. Standalone wheel deployment is not supported yet. Integration tests skip explicitly if the extractor has not been built; set `ARCHIE_REQUIRE_INTEGRATION=1` to make such a skip fail instead.
+
+For a reproducible environment, install the exact versions used by CI instead of the ranges above. `global.json` selects a .NET 10 SDK, and the extractor's `packages.lock.json` pins its NuGet packages:
+
+```sh
+.venv/bin/python -m pip install -r requirements-lock.txt
+.venv/bin/python -m pip install --no-deps -e .
+dotnet restore extractor/ArchiE.Extractor/ArchiE.Extractor.csproj --locked-mode
+```
+
+GitHub Actions (`.github/workflows/ci.yml`) runs these steps on every push and pull request from a clean checkout. It builds the extractor and the fixture, runs the test suite with `ARCHIE_REQUIRE_INTEGRATION=1`, and fails if the run leaves changes in the working tree. Optional retrieval and answering models are not installed in CI. Tests that need them are skipped, and that skip is not a failure.
 
 The SDK installation used during development reports `NETSDK1226` and cannot resolve its distro-specific apphost. On that installation, both build commands need:
 
@@ -194,7 +204,7 @@ An offline CUDA smoke test on MarkovJunior answered `Interpreter.Load -> Node.Fa
 
 See [why MarkovJunior is used for benchmarking](benchmarks/MARKOVJUNIOR.md) for the selection rationale, architectural coverage, limitations and original project citation.
 
-The primary research focus is factual correctness on multi-hop C# architecture questions. The draft wording, labels, and proposed human fact-F1 protocol are in [benchmarks/REVIEW.md](benchmarks/REVIEW.md) and [benchmarks/PROTOCOL.md](benchmarks/PROTOCOL.md). Both benchmark JSON files are still `draft`. Their sixteen development questions include five multi-hop calibration questions and eleven controls; they are not a held-out research dataset. Some were used during earlier smoke tests.
+The primary research focus is factual correctness on multi-hop C# architecture questions. The draft wording, labels, and proposed human fact-F1 protocol are in [benchmarks/REVIEW.md](benchmarks/REVIEW.md) and [benchmarks/PROTOCOL.md](benchmarks/PROTOCOL.md). Both benchmark JSON files are approved. They hold 29 questions: sixteen development questions (five multi-hop calibration questions and eleven controls, some used during earlier smoke tests) and thirteen questions added by a second reviewer who did not take part in development (three multi-hop, ten controls). They are not yet a sufficient held-out research dataset. A first frozen held-out set of four questions, never run during development, is described in [benchmarks/HELDOUT.md](benchmarks/HELDOUT.md).
 
 Human involvement is required before research runs: review wording, atomic expected facts, depth/category labels, source regions, abstention policy, and scoring rules. Only after explicit review should a benchmark's review status become `approved` with a non-empty reviewer and an ISO-8601 review date. A source content hash freezes each indexed project. The fixture also records a project Git revision; this vendored MarkovJunior snapshot has no verified upstream Git revision, which is recorded as null rather than invented.
 
@@ -219,6 +229,14 @@ Evaluation output contains:
 - `review-template.json`: pending human-assessment fields, expected facts, rubric regions, model claims, and indexes into raw answers. It is created atomically after completion and never overwritten on resume. It is not a blinded-review interface.
 
 Repeat the exact command to resume. Completed attempts, including failures, are never automatically retried. A process interrupted during an attempt leaves an in-flight checkpoint; resuming preserves that attempt as `EVALUATION_INTERRUPTED` and continues with the remaining schedule. To explicitly retry a question, use a new output directory and select it by question ID, preserving the old attempt. Changed benchmark/review metadata, settings, software, model identity, source/index, or question selection require a new directory. Concurrent writers to the same run directory are rejected with a process lock; locks are released when the process exits.
+
+After a completed review, compute paired precision, recall, F1, abstentions, failures, context and latency per mode. The command reads the run, review and benchmark without modifying them, refuses incomplete or mismatched reviews, and records the hash of each input:
+
+```sh
+.venv/bin/archie analyze artifacts/evaluations/markov-v1 --review REVIEW.json --benchmark benchmarks/markovjunior-v1.json --output artifacts/evaluations/markov-v1/analysis.json
+```
+
+Abstentions on answerable questions are reported both excluded from F1 and as F1 = 0. Add `--subset NAME=REGEX` to report a group of question IDs separately. The current graded runs and the benchmark report are in [benchmarks/results](benchmarks/results/BENCHMARK-REPORT.md).
 
 Structural checks verify cited source spans/chunk origins and canonical graph paths against the selected index. They do not judge truth, entailment, relevance, gold-fact coverage, unsupported claims, or correct abstention. Failed answers remain visible separately; a high citation-validity rate among accepted answers must not hide rejected generations. Human fact grading and quality analysis are deliberately deferred until the protocol and labels are approved. Do not use keyword matching as a substitute.
 

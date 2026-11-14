@@ -23,3 +23,4 @@ schemas = ["*.json"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
+markers = ["integration: needs the built Roslyn extractor and C# fixture; fails instead of skipping when ARCHIE_REQUIRE_INTEGRATION=1"]

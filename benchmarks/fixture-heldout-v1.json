@@ -1,0 +1,43 @@
+{
+  "schema_version": "archie.benchmark.v1",
+  "version": "fixture-heldout-v1",
+  "split": "held_out",
+  "research_question": "Does source-backed dependency-graph context improve factual correctness on multi-hop C# architecture questions, compared with source-only retrieval using the same local model and context ceiling?",
+  "source": {
+    "id": "fixture",
+    "content_hash": "sha256:450aba2d1f8f30230a7cda5eda6481632adabd6b9ca0515db80eadaccd4a1f7d",
+    "revision": "6879c6fc301ec3443184dca60daab5fe9467ce86",
+    "provenance_note": "Tracked fixture at this project revision; source hash freezes indexed source/project bytes."
+  },
+  "review": {
+    "status": "approved",
+    "reviewer": "Rosa Cortes",
+    "reviewed_at": "2026-11-14T03:18:48.258000+00:00"
+  },
+  "questions": [
+    {
+      "schema_version": "archie.benchmark-question.v1",
+      "schema_revision": 2,
+      "id": "question:fixture-ho-create-interface-path",
+      "question": "What connects Fixture.App.Controller.Create to Fixture.Core.IService?",
+      "expected_facts": [
+        {
+          "id": "fact:fixture-ho-create-interface-path-1",
+          "text": "Controller.Create constructs a Service with new Service()."
+        },
+        {
+          "id": "fact:fixture-ho-create-interface-path-2",
+          "text": "Service implements IService."
+        }
+      ],
+      "dependency_depth": 2,
+      "category": "path",
+      "expected_action": "answer",
+      "acceptable_citations": [
+        "App/Controller.cs:10-10",
+        "Core/Service.cs:5-5"
+      ],
+      "review_notes": "The Controller field and constructor parameter of type IService are a direct dependency, not the path asked for. Added by Rosa Cortes on 2026-11-14; drafted with Claude and manually verified against the source. Held out: frozen and never run during development."
+    }
+  ]
+}
