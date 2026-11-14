@@ -207,7 +207,7 @@ The 100% precision in this report is therefore partly a property of Claude. A 4B
 
 ## Limitations
 
-- **Small and exposed sample.** There are 16 answerable MarkovJunior questions, and only 6 of them are multi-hop. Victor's questions were used during development, and none of these questions is held out. No uncertainty interval is reported, because the sample is too small for one to mean much, and the protocol's clustering plan is not settled yet. These results support no research claim.
+- **Small and exposed sample.** There are 16 answerable MarkovJunior questions, and only 6 of them are multi-hop. Victor's questions were used during development, and none of these questions is held out. The frozen held-out questions in `benchmarks/HELDOUT.md` were deliberately not run. No uncertainty interval is reported, because the sample is too small for one to mean much, and the protocol's clustering plan is not settled yet. These results support no research claim.
 - **One reviewer.** The consistency check that followed was not blind to mode. A second independent grader is needed before formal runs.
 - **Claude, not Qwen.** The Claude revision cannot be pinned through the CLI. Claude abstained readily, while a 4B model may guess instead, so precision results may not carry over.
 - **Precision unit.** Precision is per claim as written, not per atomic proposition, as protocol step 3 asks.
@@ -218,7 +218,7 @@ The 100% precision in this report is therefore partly a property of Claude. A 4B
 
 1. Add incoming neighbourhoods for seeds in `graph_evidence.py`, and review the depth limit for depth-3 paths.
 2. Investigate retrieval misses on files such as `Program.cs` and `Node.cs`, for example with symbol-aware seeding from the question.
-3. Freeze a held-out set reviewed by two people before any formal run (Victor's task 3). The gap between development and new questions shows why.
+3. Expand the held-out set before any formal run. A first set of four questions (three multi-hop) is frozen in `benchmarks/HELDOUT.md` and has never been run; it needs a second reviewer and more questions. The gap between development and new questions shows why it matters.
 4. Score claims as atomic propositions and add a second blind grader.
 5. Repeat the runs with Qwen3-4B on a GPU machine, using the same benchmarks and `archie analyze`, for the comparison the project is designed for.
 

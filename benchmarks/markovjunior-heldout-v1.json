@@ -1,0 +1,105 @@
+{
+  "schema_version": "archie.benchmark.v1",
+  "version": "markovjunior-heldout-v1",
+  "split": "held_out",
+  "research_question": "Does source-backed dependency-graph context improve factual correctness on multi-hop C# architecture questions, compared with source-only retrieval using the same local model and context ceiling?",
+  "source": {
+    "id": "markovjunior",
+    "content_hash": "sha256:b2534eee221ce2ad219b05235864e77cda3fff0d04e42e9b94dd70b3c9e03db1",
+    "revision": null,
+    "provenance_note": "Local vendored checkout has no verified upstream Git revision; source hash freezes indexed source/project bytes."
+  },
+  "review": {
+    "status": "approved",
+    "reviewer": "Rosa Cortes",
+    "reviewed_at": "2026-11-14T03:18:48.258000+00:00"
+  },
+  "questions": [
+    {
+      "schema_version": "archie.benchmark-question.v1",
+      "schema_revision": 2,
+      "id": "question:markov-ho-onenode-field-path",
+      "question": "What static call path connects OneNode.Go to Field.Compute?",
+      "expected_facts": [
+        {
+          "id": "fact:markov-ho-onenode-field-path-1",
+          "text": "OneNode.Go calls base.Go(), statically resolved to RuleNode.Go."
+        },
+        {
+          "id": "fact:markov-ho-onenode-field-path-2",
+          "text": "RuleNode.Go calls Field.Compute."
+        }
+      ],
+      "dependency_depth": 2,
+      "category": "path",
+      "expected_action": "answer",
+      "acceptable_citations": [
+        "source/OneNode.cs:53-53",
+        "source/RuleNode.cs:208-208"
+      ],
+      "review_notes": "Static calls only; the condition on counter == 0 or field.recompute is not a required fact. Added by Rosa Cortes on 2026-11-14; drafted with Claude and manually verified against the source. Held out: frozen and never run during development."
+    },
+    {
+      "schema_version": "archie.benchmark-question.v1",
+      "schema_revision": 2,
+      "id": "question:markov-ho-tilenode-factory-path",
+      "question": "What static call path connects TileNode.Load to Node.Factory?",
+      "expected_facts": [
+        {
+          "id": "fact:markov-ho-tilenode-factory-path-1",
+          "text": "TileNode.Load calls base.Load, statically resolved to WFCNode.Load."
+        },
+        {
+          "id": "fact:markov-ho-tilenode-factory-path-2",
+          "text": "WFCNode.Load calls base.Load, statically resolved to Branch.Load."
+        },
+        {
+          "id": "fact:markov-ho-tilenode-factory-path-3",
+          "text": "Branch.Load calls the inherited static Factory method for each child, resolved to Node.Factory."
+        }
+      ],
+      "dependency_depth": 3,
+      "category": "path",
+      "expected_action": "answer",
+      "acceptable_citations": [
+        "source/TileModel.cs:287-287",
+        "source/WaveFunctionCollapse.cs:57-57",
+        "source/Node.cs:71-71"
+      ],
+      "review_notes": "Static calls only. Added by Rosa Cortes on 2026-11-14; drafted with Claude and manually verified against the source. Held out: frozen and never run during development."
+    },
+    {
+      "schema_version": "archie.benchmark-question.v1",
+      "schema_revision": 2,
+      "id": "question:markov-ho-branch-subclasses",
+      "question": "Which classes inherit directly from Branch?",
+      "expected_facts": [
+        {
+          "id": "fact:markov-ho-branch-subclasses-1",
+          "text": "SequenceNode inherits Branch."
+        },
+        {
+          "id": "fact:markov-ho-branch-subclasses-2",
+          "text": "MarkovNode inherits Branch."
+        },
+        {
+          "id": "fact:markov-ho-branch-subclasses-3",
+          "text": "MapNode inherits Branch."
+        },
+        {
+          "id": "fact:markov-ho-branch-subclasses-4",
+          "text": "WFCNode inherits Branch."
+        }
+      ],
+      "dependency_depth": 1,
+      "category": "reverse_dependency",
+      "expected_action": "answer",
+      "acceptable_citations": [
+        "source/Node.cs:99-100",
+        "source/Map.cs:6-6",
+        "source/WaveFunctionCollapse.cs:7-7"
+      ],
+      "review_notes": "Direct subclasses only; OverlapNode and TileNode inherit WFCNode, not Branch directly. Added by Rosa Cortes on 2026-11-14; drafted with Claude and manually verified against the source. Held out: frozen and never run during development."
+    }
+  ]
+}
