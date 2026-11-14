@@ -1,0 +1,217 @@
+{
+  "run_id": "run:e2c85938820f45d79dd74885184fd337",
+  "status": "complete",
+  "benchmark_version": "fixture-development-v1",
+  "benchmark_review": "approved",
+  "factual_grading": "pending_human_review",
+  "modes": {
+    "source": {
+      "attempts": 11,
+      "succeeded": 11,
+      "failed": 0,
+      "answered": 8,
+      "abstained": 3,
+      "citations_checked": 14,
+      "citations_valid": 14,
+      "citations_invalid": 0,
+      "citation_error_records": 0,
+      "mean_context_tokens": 472.8181818181818,
+      "mean_output_tokens": 323.1818181818182,
+      "mean_latency_ms": 5990.709721909132,
+      "mean_pipeline_latency_ms": 6153.607493636876
+    },
+    "graph": {
+      "attempts": 11,
+      "succeeded": 11,
+      "failed": 0,
+      "answered": 8,
+      "abstained": 3,
+      "citations_checked": 23,
+      "citations_valid": 23,
+      "citations_invalid": 0,
+      "citation_error_records": 0,
+      "mean_context_tokens": 1539.090909090909,
+      "mean_output_tokens": 332.27272727272725,
+      "mean_latency_ms": 6172.126820454155,
+      "mean_pipeline_latency_ms": 6656.878931363859
+    }
+  },
+  "citation_checks": [
+    {
+      "question_id": "question:fixture-rc-run-declarations",
+      "mode": "graph",
+      "checked": 1,
+      "valid": 1,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:fixture-rc-run-declarations",
+      "mode": "source",
+      "checked": 1,
+      "valid": 1,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:fixture-injection",
+      "mode": "source",
+      "checked": 2,
+      "valid": 2,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:fixture-injection",
+      "mode": "graph",
+      "checked": 3,
+      "valid": 3,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:fixture-cycle",
+      "mode": "graph",
+      "checked": 5,
+      "valid": 5,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:fixture-cycle",
+      "mode": "source",
+      "checked": 1,
+      "valid": 1,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:fixture-rc-service-dependents",
+      "mode": "source",
+      "checked": 3,
+      "valid": 3,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:fixture-rc-service-dependents",
+      "mode": "graph",
+      "checked": 1,
+      "valid": 1,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:fixture-interface",
+      "mode": "graph",
+      "checked": 3,
+      "valid": 3,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:fixture-interface",
+      "mode": "source",
+      "checked": 1,
+      "valid": 1,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:fixture-rc-insufficient",
+      "mode": "source",
+      "checked": 0,
+      "valid": 0,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:fixture-rc-insufficient",
+      "mode": "graph",
+      "checked": 0,
+      "valid": 0,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:fixture-reverse",
+      "mode": "graph",
+      "checked": 3,
+      "valid": 3,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:fixture-reverse",
+      "mode": "source",
+      "checked": 2,
+      "valid": 2,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:fixture-insufficient",
+      "mode": "source",
+      "checked": 0,
+      "valid": 0,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:fixture-insufficient",
+      "mode": "graph",
+      "checked": 0,
+      "valid": 0,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:fixture-base-path",
+      "mode": "graph",
+      "checked": 4,
+      "valid": 4,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:fixture-base-path",
+      "mode": "source",
+      "checked": 2,
+      "valid": 2,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:fixture-call",
+      "mode": "source",
+      "checked": 2,
+      "valid": 2,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:fixture-call",
+      "mode": "graph",
+      "checked": 3,
+      "valid": 3,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:fixture-unresolved",
+      "mode": "graph",
+      "checked": 0,
+      "valid": 0,
+      "invalid": 0,
+      "errors": []
+    },
+    {
+      "question_id": "question:fixture-unresolved",
+      "mode": "source",
+      "checked": 0,
+      "valid": 0,
+      "invalid": 0,
+      "errors": []
+    }
+  ]
+}
