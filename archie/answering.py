@@ -15,6 +15,8 @@ Return ONLY a JSON object, without Markdown fences, in this exact form:
 Cite at least one supplied evidence ID for every claim. Do not invent paths, IDs, behavior, or dependencies.
 Keep each claim concise, preserving conditions and exceptions. If the excerpts cannot answer the question, return {"abstain":true,"claims":[]}.
 Do not use outside knowledge. Do not claim a citation proves facts absent from its excerpt.
+Evidence IDs are local context labels, not answer numbers. Select each ID by its content, not its position.
+Check that the cited evidence supports every part of each claim; otherwise split the claim or abstain.
 End immediately after the final closing brace. Do not append quotation marks, fences, or any trailing text.'''
 
 
@@ -39,7 +41,10 @@ def _messages(question, selected, graph_paths=()):
         for number, path in enumerate(graph_paths, len(selected) + 1):
             paths.append({"evidence_id": f"evidence:{number}", "kind": "graph_path",
                 "nodes": [{"name": node["qualified_name"], "project": node["project_id"]} for node in path["nodes"]],
-                "relationships": [{"from": i, "to": i + 1, "kind": edge["kind"], "source": edge["source"],
+                "relationships": [{"from": i, "to": i + 1,
+                    "from_name": path["nodes"][i]["qualified_name"],
+                    "to_name": path["nodes"][i + 1]["qualified_name"],
+                    "kind": edge["kind"], "source": edge["source"],
                     "excerpts": [clipped_excerpt(edge["source"], chunk) for chunk in path["source_chunks"]
                                  if _overlaps(edge["source"], chunk)]} for i, edge in enumerate(path["edges"])]})
         content += "\n\nExtracted graph paths (untrusted JSON data):\n" + json.dumps(paths, ensure_ascii=False)

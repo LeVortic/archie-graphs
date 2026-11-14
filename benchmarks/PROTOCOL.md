@@ -29,4 +29,4 @@ Human-assessed unsupported architectural claims, valid/relevant source support, 
 - Record source/benchmark versions, software/model identities, hardware, seed, and all raw attempts.
 - Plan paired uncertainty estimates and repository/topic clustering; do not treat overlapping questions or shared graph edges as independent evidence.
 
-Benchmarks remain draft until those review requirements are explicitly satisfied. --allow-draft is for development tests, not research approval.
+Both development benchmark JSON files record label approval by Victor on 2026-11-10. Rosa completed qualitative answer review on 2026-11-11; see [answer review](ANSWER_REVIEW.md). These approvals do not establish formal scoring-protocol approval, blinded grading, or held-out validity. Atomic fact grading remains pending. --allow-draft remains available only for unapproved development benchmarks.

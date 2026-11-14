@@ -215,7 +215,8 @@ def test_checked_in_benchmarks_are_approved_with_distinct_labels():
     for name, count in (("fixture", 11), ("markovjunior", 18)):
         path = ROOT / f"benchmarks/{name}-v1.json"
         benchmark = load_benchmark(path)
-        assert benchmark["review"]["status"] == "approved" and benchmark["review"]["reviewer"].strip()
+        assert benchmark["review"]["status"] == "approved"
+        assert benchmark["review"]["reviewer"].strip() and benchmark["review"]["reviewed_at"]
         assert benchmark["split"] == "development" and len(benchmark["questions"]) == count
         questions += benchmark["questions"]
     assert len({question["id"] for question in questions}) == 29

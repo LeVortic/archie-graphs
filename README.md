@@ -57,13 +57,13 @@ Published indexes contain `manifest.json`, `extractor.json`, `graph.json`, `sour
 - Source and referenced projects must be inside the directory containing the input solution or project. Prefer a solution at the repository root for sibling projects.
 - Relationships to external framework symbols are omitted. Partial extraction retains diagnostics and can produce a complete index of the validated subset; inspect `extractor.json` status.
 - Published graph records remain JSON. The query layer builds a NetworkX `MultiDiGraph` from the validated extractor artifact, preserving parallel relationships and source evidence.
-- Source snapshots use deterministic chunks of up to 40 lines and 2,000 characters, with exact UTF-16 source spans. Embedding-enabled indexes also split to the model token budget. Source and graph-augmented local answering are available; benchmark evaluation remains unfinished.
+- Source snapshots use deterministic chunks of up to 40 lines and 2,000 characters, with exact UTF-16 source spans. Embedding-enabled indexes also split to the model token budget. Source and graph-augmented local answering are available; paired evaluation is implemented; atomic fact grading and quality analysis remain pending.
 - Dependency edges link the owning type to an indexed type: `field_use` covers declared field types; `constructor_use` covers constructor parameter types and explicit or target-typed object creation. Each edge cites the type syntax or creation expression. External types are omitted; unresolved types remain diagnostics.
 - Dependency extraction currently covers directly indexed named types. Array elements, generic type arguments, primary-constructor parameters, and constructor initializers are not traversed.
 - Namespaces, capability probing, explicit cancellation messages, and full extractor failure contracts remain unfinished.
 - Source files should remain unchanged during indexing. SDK, project imports, and external dependency changes are not yet captured in the source content hash.
 
-Graph query milestone complete: direct/reverse dependencies, bounded neighborhoods, dependency paths, and cycle queries. Source retrieval and both local answer modes are implemented; next milestone: reviewed benchmarks and evaluation.
+Graph query milestone complete: direct/reverse dependencies, bounded neighborhoods, dependency paths, and cycle queries. Source retrieval and both local answer modes are implemented; next milestone: atomic fact grading, quality analysis, and held-out evaluation.
 
 ## Query direct dependencies
 
@@ -165,7 +165,7 @@ Schema-constrained decoding filters generated tokens to produce a JSON object co
 
 Successful JSON records include the question/index identity, selected chunk IDs, source evidence, raw model response, exact model revision, runtime/device/dtype, input/output token counts, latency, and context truncation. Failed generation records retain available evidence and raw output for diagnosis and are printed to stderr. Errors before answer assembly use the normal CLI failure JSON. Context truncation means some retrieved excerpts were omitted; top-k retrieval itself is not a completeness guarantee.
 
-Citation IDs and source spans are validated against the excerpts supplied to the model. This does not establish that a claim follows from a cited passage, so generated claims have `support_status: uncertain`. They are not automatically labeled supported. Abstention also does not prove a feature is absent from the entire repository. Generation uses greedy decoding (`do_sample=False`); numerical differences across hardware/runtime versions can still affect output. Graph mode is described below; benchmark evaluation remains unfinished.
+Citation IDs and source spans are validated against the excerpts supplied to the model. This does not establish that a claim follows from a cited passage, so generated claims have `support_status: uncertain`. They are not automatically labeled supported. Abstention also does not prove a feature is absent from the entire repository. Generation uses greedy decoding (`do_sample=False`); numerical differences across hardware/runtime versions can still affect output. Graph mode is described below; paired evaluation is implemented; atomic fact grading and quality analysis remain pending.
 
 Place the project you want to index inside `ignore/` (for example, `ignore/MyProject/`), then index its project file and query the generated index:
 
@@ -200,13 +200,13 @@ Graph mode currently needs the original source checkout because it reuses graph 
 
 An offline CUDA smoke test on MarkovJunior answered `Interpreter.Load -> Node.Factory -> Node.Load` with a graph-path citation; source mode abstained for that question. Both modes abstained on an unsupported PostgreSQL question. These are plumbing and citation checks, not benchmark results. Generated records are under `artifacts/graph-answering-smoke/` and are intentionally ignored by Git.
 
-## Draft benchmarks and paired evaluation
+## Development benchmarks and paired evaluation
 
 See [why MarkovJunior is used for benchmarking](benchmarks/MARKOVJUNIOR.md) for the selection rationale, architectural coverage, limitations and original project citation.
 
-The primary research focus is factual correctness on multi-hop C# architecture questions. The draft wording, labels, and proposed human fact-F1 protocol are in [benchmarks/REVIEW.md](benchmarks/REVIEW.md) and [benchmarks/PROTOCOL.md](benchmarks/PROTOCOL.md). Both benchmark JSON files are approved. They hold 29 questions: sixteen development questions (five multi-hop calibration questions and eleven controls, some used during earlier smoke tests) and thirteen questions added by a second reviewer who did not take part in development (three multi-hop, ten controls). They are not yet a sufficient held-out research dataset. A first frozen held-out set of four questions, never run during development, is described in [benchmarks/HELDOUT.md](benchmarks/HELDOUT.md).
+The primary research focus is factual correctness on multi-hop C# architecture questions. The reviewed development labels and proposed human fact-F1 protocol are in [benchmarks/REVIEW.md](benchmarks/REVIEW.md) and [benchmarks/PROTOCOL.md](benchmarks/PROTOCOL.md). Both benchmark JSON files record approval by Victor on 2026-11-10. Their sixteen development questions include five multi-hop calibration questions and eleven controls; they are not a held-out research dataset. Some were used during earlier smoke tests.
 
-Human involvement is required before research runs: review wording, atomic expected facts, depth/category labels, source regions, abstention policy, and scoring rules. Only after explicit review should a benchmark's review status become `approved` with a non-empty reviewer and an ISO-8601 review date. A source content hash freezes each indexed project. The fixture also records a project Git revision; this vendored MarkovJunior snapshot has no verified upstream Git revision, which is recorded as null rather than invented.
+Before formal research runs, confirm the scoring protocol, abstention and exclusion policies, and separately reviewed held-out labels. Only after explicit review should a benchmark's review status become `approved` with a non-empty reviewer and an ISO-8601 review date. A source content hash freezes each indexed project. The fixture also records a project Git revision; this vendored MarkovJunior snapshot has no verified upstream Git revision, which is recorded as null rather than invented.
 
 Install the optional model/evaluation dependencies with `pip install -e '.[retrieval,answering]'`. Run a reviewed benchmark using its matching embedding-enabled index:
 
@@ -221,6 +221,8 @@ The default command rejects unreviewed benchmarks. For development only, explici
 ```
 
 This flag does not approve labels or authorize research claims. The question subset, benchmark contents/review state, source/index identity, embedding identity, model revision/runtime/device/dtype, hardware, Python version, software hash, generation limits, and graph bounds are frozen in the run record. Expected facts and rubric citations are never supplied to the language model. Both modes call the same workflow as `ask`, with equal context ceilings and generation settings. Question order is shuffled by the recorded seed; first-mode order alternates to counterbalance source-first and graph-first trials.
+
+Rosa completed qualitative review of both approved development runs on 2026-11-11. See [answer review](benchmarks/ANSWER_REVIEW.md) for clarified per-mode grades and formatting caveats. Atomic fact grading remains pending. The local walkthroughs and review templates retain those annotations; raw experiments and generated summaries are historical outputs.
 
 Evaluation output contains:
 

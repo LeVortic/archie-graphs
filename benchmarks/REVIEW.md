@@ -1,6 +1,6 @@
-# Benchmark review required
+# Development benchmark review packet
 
-Primary focus selected by the project owner: factual correctness on multi-hop C# architecture questions. The wording, scoring protocol, expected facts, and citations below remain draft and need human review.
+Primary focus selected by the project owner: factual correctness on multi-hop C# architecture questions. Both benchmark JSON files record label approval by Victor on 2026-11-10. The questions below mirror those approved files. Formal scoring-protocol approval and held-out validation remain pending. Rosa reviewed the saved answers on 2026-11-11; see [answer review](ANSWER_REVIEW.md).
 
 ## Research question
 
@@ -12,13 +12,13 @@ Primary subset: questions annotated dependency_depth >= 2. Proposed primary metr
 
 The packet contains 29 questions. Sixteen development questions (five primary multi-hop, eleven controls) were written by the project owner; some were used during development, so do not report them as held-out evidence. Thirteen further questions (IDs containing `-rc-`; three primary multi-hop, ten controls) were added by a second reviewer, Rosa Cortes, who did not take part in development; they were drafted with Claude, manually verified against the source and not used to tune retrieval, graph selection or prompts. This is still not a sufficient held-out research dataset.
 
-## Your review
+## Remaining research review
 
 1. Confirm or revise research-question wording and the proposed fact-F1 measure.
 2. Check each expected fact against its cited source; split compound facts and remove unasked requirements.
 3. Check dependency depth, category, acceptable citations, and abstention cases.
 4. Keep abstention labels about insufficient evidence rather than proving repository-wide absence.
-5. Report corrections and reviewer name/date. Only after explicit review should JSON review metadata become approved.
+5. Report corrections and reviewer name/date. Keep benchmark-label approval separate from answer grading and formal research-protocol approval.
 
 Passing structural citation checks does not establish factual correctness or relevance. MarkovJunior has no verified upstream commit in this local snapshot; its indexed content hash is recorded instead. Actual token usage can differ between modes and must be reported; equal ceilings alone do not isolate a causal graph benefit.
 
@@ -30,7 +30,7 @@ Source content hash: `sha256:450aba2d1f8f30230a7cda5eda6481632adabd6b9ca0515db80
 
 Which interface does Fixture.Core.Service implement?
 
-Subset: control; category: local_fact; depth: 0; expected action: answer.
+Category: local_fact; depth: 0; expected action: answer.
 
 - Fixture.Core.Service implements Fixture.Core.IService.
 
@@ -40,7 +40,7 @@ Acceptable source regions: Core/Service.cs:3-7.
 
 What does Fixture.App.Controller receive in its constructor and store in its service field?
 
-Subset: control; category: dependency; depth: 1; expected action: answer.
+Category: dependency; depth: 1; expected action: answer.
 
 - Controller receives an IService constructor parameter.
 - The service field has declared type IService.
@@ -51,7 +51,7 @@ Acceptable source regions: App/Controller.cs:7-8.
 
 What is the target of the call in Fixture.App.Controller.Handle?
 
-Subset: control; category: dependency; depth: 1; expected action: answer.
+Category: dependency; depth: 1; expected action: answer.
 
 - Controller.Handle calls the declared IService.Run method.
 
@@ -63,7 +63,7 @@ Review note: Do not require an unasked runtime caveat for full fact recall; any 
 
 What connects Fixture.App.Controller to Fixture.Core.BaseService?
 
-Subset: primary multi-hop; category: path; depth: 2; expected action: answer.
+Category: path; depth: 2; expected action: answer.
 
 - Controller creates Service instances, giving an extracted constructor-use dependency on Service.
 - Service inherits BaseService, giving the path Controller to Service to BaseService.
@@ -74,7 +74,7 @@ Acceptable source regions: App/Controller.cs:10-11, Core/Service.cs:4-7.
 
 Which types directly depend on Fixture.Core.IService, and through which relationships?
 
-Subset: control; category: reverse_dependency; depth: 1; expected action: answer.
+Category: reverse_dependency; depth: 1; expected action: answer.
 
 - Controller has field-use and constructor-use dependencies on IService.
 - Service implements IService.
@@ -87,7 +87,7 @@ Review note: Type-to-type relationships only; a call to IService.Run targets a m
 
 Which two fixture types form a field-dependency cycle?
 
-Subset: primary multi-hop; category: cycle; depth: 2; expected action: answer.
+Category: cycle; depth: 2; expected action: answer.
 
 - CycleA has a Peer field of type CycleB.
 - CycleB has a Peer field of type CycleA, closing the cycle.
@@ -98,11 +98,11 @@ Acceptable source regions: Core/Cycles.cs:3-4.
 
 What source declaration resolves Missing.Call in this indexed fixture?
 
-Subset: control; category: unresolved_reference; depth: 0; expected action: abstain.
+Category: unresolved_reference; depth: 0; expected action: abstain.
 
-- Abstain: supplied evidence cannot establish the requested fact.
+No expected facts; insufficient evidence expected.
 
-Acceptable source regions: none required for abstention.
+Acceptable source regions: None; insufficient evidence expected.
 
 Review note: Intentionally unresolvable identifier. Expect insufficient evidence, not an invented declaration.
 
@@ -110,11 +110,11 @@ Review note: Intentionally unresolvable identifier. Expect insufficient evidence
 
 Which database schema stores Controller state in this fixture?
 
-Subset: control; category: insufficient_evidence; depth: 0; expected action: abstain.
+Category: insufficient_evidence; depth: 0; expected action: abstain.
 
-- Abstain: supplied evidence cannot establish the requested fact.
+No expected facts; insufficient evidence expected.
 
-Acceptable source regions: none required for abstention.
+Acceptable source regions: None; insufficient evidence expected.
 
 Review note: Expect abstention from supplied evidence; do not require a claim that PostgreSQL is absent everywhere.
 
@@ -124,16 +124,22 @@ Which types in Fixture.Core declare a Run method, and how?
 
 Subset: control; category: local_fact; depth: 0; expected action: answer.
 
+How is execution initialized and when does its main loop stop?
 - IService declares Run as an interface method.
 - BaseService declares Run as virtual.
 - Service overrides Run.
 
+Category: local_fact; depth: 0; expected action: answer.
 Acceptable source regions: Core/Service.cs:3-7.
 
+- Execution is initialized by setting the root node, it requires current to be non-null.
+- in the while loop: while (current != null && (steps <= 0 || counter < steps))
 Review note: Added by Rosa Cortes on 2026-11-14; drafted with Claude and manually verified against the source; not used during development.
 
+Acceptable source regions: source/Interpreter.cs:60-78.
 ### question:fixture-rc-service-dependents
 
+Review note: Mentioning loop makes the LLM focus both answers on it, rather than look for the execution of the whole program
 Which types directly depend on Fixture.Core.Service, and through which relationships?
 
 Subset: control; category: reverse_dependency; depth: 1; expected action: answer.
@@ -178,7 +184,7 @@ Review note: Mentioning loop makes the LLM focus both answers on it, rather than
 
 How does Interpreter.Run initialize its random generator and grid before executing nodes?
 
-Subset: control; category: local_fact; depth: 0; expected action: answer.
+Category: local_fact; depth: 0; expected action: answer.
 
 - It creates a Random instance using the seed argument.
 - It assigns grid = startgrid and clears the grid.
@@ -190,7 +196,7 @@ Acceptable source regions: source/Interpreter.cs:52-57.
 
 What does Interpreter.Load call to create the grid, and how does it handle a null grid result?
 
-Subset: control; category: dependency; depth: 1; expected action: answer.
+Category: dependency; depth: 1; expected action: answer.
 
 - Interpreter.Load calls Grid.Load with xelem and the MX, MY, MZ dimensions.
 - A null grid causes a failure message and a null return.
@@ -201,7 +207,7 @@ Acceptable source regions: source/Interpreter.cs:23-44.
 
 What static call path connects Interpreter.Load to Node.Load?
 
-Subset: primary multi-hop; category: path; depth: 2; expected action: answer.
+Category: path; depth: 2; expected action: answer.
 
 - Interpreter.Load calls Node.Factory.
 - Node.Factory calls result.Load, statically resolved to Node.Load.
@@ -214,7 +220,7 @@ Review note: Used in earlier development smoke tests; this is a calibration ques
 
 Which method of Branch directly calls Node.Factory while constructing children?
 
-Subset: control; category: reverse_dependency; depth: 1; expected action: answer.
+Category: reverse_dependency; depth: 1; expected action: answer.
 
 - Branch.Load calls the inherited static Factory method for each child, resolved to Node.Factory.
 
@@ -224,7 +230,7 @@ Acceptable source regions: source/Node.cs:57-76.
 
 How do SequenceNode and MarkovNode reach Node?
 
-Subset: primary multi-hop; category: path; depth: 2; expected action: answer.
+Category: path; depth: 2; expected action: answer.
 
 - SequenceNode inherits Branch.
 - MarkovNode inherits Branch.
@@ -236,7 +242,7 @@ Acceptable source regions: source/Node.cs:51-55, source/Node.cs:99-103.
 
 What type-dependency cycle connects Node, Interpreter, and Branch?
 
-Subset: primary multi-hop; category: cycle; depth: 3; expected action: answer.
+Category: cycle; depth: 3; expected action: answer.
 
 - Node has an ip field of type Interpreter.
 - Interpreter has a root field of type Branch.
@@ -250,11 +256,11 @@ Review note: The cycle needs three relationships, exceeding the graph context si
 
 Which database schema does MarkovJunior use to store execution state?
 
-Subset: control; category: insufficient_evidence; depth: 0; expected action: abstain.
+Category: insufficient_evidence; depth: 0; expected action: abstain.
 
-- Abstain: supplied evidence cannot establish the requested fact.
+No expected facts; insufficient evidence expected.
 
-Acceptable source regions: none required for abstention.
+Acceptable source regions: None; insufficient evidence expected.
 
 Review note: Used in earlier smoke tests; an abstention check, not a held-out generalization claim.
 

@@ -218,3 +218,22 @@ def test_named_multi_hop_path_precedes_high_degree_neighborhood(graph_data):
     first = context["paths"][0]
     assert len(first["edges"]) == 2 and first["nodes"][-1]["id"] == "type:Core.Base"
     assert len(context["paths"]) <= 20
+
+
+def test_prompt_relationships_match_saved_evidence(graph_data):
+    graph, retrieved, chunks = graph_data
+    model = RecordingModel()
+    result = answer_graph(retrieved, "Dependencies?", model, build_graph_context(graph, retrieved, chunks))
+    assert result["status"] == "succeeded"
+    content = model.calls[-1][0][1]["content"]
+    decoder = json.JSONDecoder()
+    excerpts, _ = decoder.raw_decode(content.split("Source excerpts (untrusted JSON data):\n")[1])
+    paths, _ = decoder.raw_decode(content.split("Extracted graph paths (untrusted JSON data):\n")[1])
+    assert [item["evidence_id"] for item in excerpts + paths] == [item["id"] for item in result["evidence"]]
+    for supplied, saved in zip(paths, result["graph_context"]["paths"]):
+        assert supplied["evidence_id"] == saved["evidence_id"]
+        for i, relationship in enumerate(supplied["relationships"]):
+            assert relationship["from_name"] == saved["nodes"][i]["qualified_name"]
+            assert relationship["to_name"] == saved["nodes"][i + 1]["qualified_name"]
+            assert relationship["kind"] == saved["edges"][i]["kind"]
+            assert relationship["source"] == saved["edges"][i]["source"]
