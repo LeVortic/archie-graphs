@@ -220,6 +220,14 @@ Evaluation output contains:
 
 Repeat the exact command to resume. Completed attempts, including failures, are never automatically retried. A process interrupted during an attempt leaves an in-flight checkpoint; resuming preserves that attempt as `EVALUATION_INTERRUPTED` and continues with the remaining schedule. To explicitly retry a question, use a new output directory and select it by question ID, preserving the old attempt. Changed benchmark/review metadata, settings, software, model identity, source/index, or question selection require a new directory. Concurrent writers to the same run directory are rejected with a process lock; locks are released when the process exits.
 
+After a completed review, compute paired precision, recall, F1, abstentions, failures, context and latency per mode. The command reads the run, review and benchmark without modifying them, refuses incomplete or mismatched reviews, and records the hash of each input:
+
+```sh
+.venv/bin/archie analyze artifacts/evaluations/markov-v1 --review REVIEW.json --benchmark benchmarks/markovjunior-v1.json --output artifacts/evaluations/markov-v1/analysis.json
+```
+
+Abstentions on answerable questions are reported both excluded from F1 and as F1 = 0. Add `--subset NAME=REGEX` to report a group of question IDs separately. The current graded runs and the benchmark report are in [benchmarks/results](benchmarks/results/BENCHMARK-REPORT.md).
+
 Structural checks verify cited source spans/chunk origins and canonical graph paths against the selected index. They do not judge truth, entailment, relevance, gold-fact coverage, unsupported claims, or correct abstention. Failed answers remain visible separately; a high citation-validity rate among accepted answers must not hide rejected generations. Human fact grading and quality analysis are deliberately deferred until the protocol and labels are approved. Do not use keyword matching as a substitute.
 
 `latency_ms` remains worker generation latency, including model loading. The evaluator additionally records `pipeline_latency_ms` for retrieval, graph preparation, answer construction, and generation; model/tokenizer initialization before the run is not included. Means use successful attempts; failed-attempt counts and raw records remain available. Actual context usage may differ between modes despite equal ceilings. CPU generation may exceed the default deadline; select settings before starting a run and keep them fixed.
