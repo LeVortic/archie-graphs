@@ -196,6 +196,8 @@ def _reports(output, state, benchmark, graph, chunks):
             _atomic_json(review_path, {"run_id": state["run_id"], "status": "pending", "items": items}, overwrite=False)
         except FileExistsError:
             pass  # A review created concurrently must not be replaced.
+    if state["status"] == "complete" and not (output / "review.MD").exists():
+        write_review_markdown(output / "review.json" if (output / "review.json").exists() else review_path)
     return summary
 
 
