@@ -232,7 +232,10 @@ Evaluation output contains:
 
 - `experiment.json`: benchmark snapshot, exact execution order, raw answer records, failures, timestamps, and frozen settings. It is atomically checkpointed before and after each attempt.
 - `summary.json`: status/failure counts, answer/abstention counts, structural citation checks, and mean token/latency observations. `factual_grading` remains `pending_human_review`; there is no automated correctness score.
-- `review-template.json`: pending human-assessment fields, expected facts, rubric regions, model claims, and indexes into raw answers. It is created atomically after completion and never overwritten on resume. It is not a blinded-review interface.
+- `review-template.json`: run and answer identifiers with blank grading fields keyed by claim and fact ID. Copy it to `review.json` and enter grades there. The template is created atomically after completion and never overwritten on resume.
+- `review.MD`: questions, claims, cited source and graph excerpts, and the rubric. Use it alongside the grading JSON. Modes are visible.
+
+Refresh the Markdown after editing grades with `.venv/bin/archie review-markdown RUN_DIR --index INDEX_DIR`. It reads the saved experiment, matching index, and `review.json` (or the template if no graded file exists).
 
 Repeat the exact command to resume. Completed attempts, including failures, are never automatically retried. A process interrupted during an attempt leaves an in-flight checkpoint; resuming preserves that attempt as `EVALUATION_INTERRUPTED` and continues with the remaining schedule. To explicitly retry a question, use a new output directory and select it by question ID, preserving the old attempt. Changed benchmark/review metadata, settings, software, model identity, source/index, or question selection require a new directory. Concurrent writers to the same run directory are rejected with a process lock; locks are released when the process exits.
 

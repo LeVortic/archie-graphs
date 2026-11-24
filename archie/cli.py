@@ -11,7 +11,7 @@ from jsonschema import ValidationError
 
 from .application import index_solution
 from .analysis import analyze_to_file
-from .evaluation import evaluate, load_benchmark
+from .evaluation import evaluate, load_benchmark, regenerate_review_markdown
 from .embeddings import SentenceEmbedder
 from .language_model import QwenModel
 from .answering import answer_source, answer_graph
@@ -89,6 +89,9 @@ def main(argv=None):
     analysis.add_argument("--output", required=True, help="Analysis JSON to write (inputs are never modified)")
     analysis.add_argument("--subset", action="append", default=[], metavar="NAME=REGEX",
                           help="Extra group of question IDs matching REGEX; repeatable")
+    review = commands.add_parser("review-markdown", help="Refresh review.MD from a completed run")
+    review.add_argument("run", help="Run directory containing experiment.json and review JSON")
+    review.add_argument("--index", required=True, help="Published index used by the experiment")
     inspect = commands.add_parser("inspect", help="Query a published index")
     queries = inspect.add_subparsers(dest="query", required=True)
     for name in ("dependencies", "dependents"):
@@ -181,6 +184,8 @@ def main(argv=None):
             subsets = dict(value.split("=", 1) for value in args.subset)
             result = analyze_to_file(Path(args.run) / "experiment.json", args.review, args.benchmark, args.output, subsets)
             print(json.dumps({"status": "complete", "run_id": result["run_id"], "path": str(Path(args.output).resolve())}))
+        elif args.command == "review-markdown":
+            print(regenerate_review_markdown(args.run, args.index))
         else:
             graph = load_graph(args.index)
             if args.query in {"dependencies", "dependents"}:

@@ -96,6 +96,28 @@ def test_counterbalanced_paired_runs_resume_and_preserve_review(experiment):
     first_modes = Counter(state["execution_order"][n]["mode"] for n in (0, 2))
     assert first_modes == {"source": 1, "graph": 1}
     assert state["benchmark_snapshot"] == experiment.benchmark
+    assert (experiment.root / "run/review.MD").is_file()
+    generated = json.loads((experiment.root / "run/review-template.json").read_text())
+    for item, answer in zip(generated["items"], state["answers"], strict=True):
+        assert set(item) == {"answer_index", "question_id", "mode", "status", "assessment"}
+        assert item["assessment"]["claim_labels"] == dict.fromkeys(claim["id"] for claim in answer["claims"])
+    markdown = (experiment.root / "run/review.MD").read_text()
+    assert all(question["question"] in markdown for question in experiment.benchmark["questions"])
+    assert "#### evidence:1 (source_span)" in markdown
+    assert "#### evidence:1 (graph_path)" in markdown
+    assert "Relationship:" in markdown
+    assert next(iter(experiment.chunks.values()))["text"].splitlines()[0] in markdown
+    assert "`claim:one` — pending" in markdown
+
+    graded = experiment.root / "run/review.json"
+    item = next(item for item in generated["items"] if item["assessment"]["claim_labels"])
+    item["assessment"]["claim_labels"]["claim:one"] = "ok"
+    graded.write_text(json.dumps(generated))
+    before = graded.read_bytes()
+    assert main(["review-markdown", str(graded.parent), "--index", str(experiment.index)]) == 0
+    refreshed = (graded.parent / "review.MD").read_text()
+    assert "`claim:one` — ok" in refreshed and "#### evidence:1 (graph_path)" in refreshed
+    assert graded.read_bytes() == before and len(experiment.calls) == 4
     assert summary["factual_grading"] == "pending_human_review"
     assert all(mode["citations_invalid"] == 0 and mode["answered"] == 1 and mode["abstained"] == 1 for mode in summary["modes"].values())
     review = experiment.root / "run/review-template.json"
@@ -312,3 +334,30 @@ def test_held_out_benchmarks_are_frozen_and_distinct_from_development():
         assert benchmark["split"] == "held_out" and benchmark["review"]["status"] == "approved"
         assert benchmark["source"] == development["source"]
         assert not {question["id"] for question in benchmark["questions"]} & development_ids
+
+
+def test_review_markdown_preserves_json_and_displays_pending_and_completed_grades(tmp_path):
+    from archie.evaluation import write_review_markdown
+
+    review = {"run_id": "run:test", "reviewer": "Reviewer", "status": "pending", "items": [
+        {"answer_index": 0, "question_id": "question:test", "question": "Which dependency does A have?", "mode": "source", "status": "pending",
+         "expected_action": "answer", "answer": "A depends on B.",
+         "claims": [{"id": "claim:1", "text": "A depends on B.\nSecond line.", "evidence_ids": ["evidence:1"]}],
+         "expected_facts": [{"id": "fact:1", "text": "A depends on B."}],
+         "acceptable_citations": ["A.cs:1-2"],
+         "assessment": {"claim_labels": {"claim:1": "ok"}, "fact_matches": {"fact:1": True}, "notes": "Checked."}},
+        {"answer_index": 1, "question_id": "question:none", "mode": "graph", "status": "pending",
+         "expected_action": "abstain", "answer": "Insufficient evidence.", "claims": [], "expected_facts": [],
+         "assessment": {"fact_matches": None, "correct_abstention": None}},
+    ]}
+    source = tmp_path / "review.json"
+    source.write_text(json.dumps(review))
+    before = source.read_bytes()
+    output = write_review_markdown(source)
+    text = output.read_text()
+    assert output.name == "review.MD" and source.read_bytes() == before
+    assert "Answers: 2" in text and "`claim:1` — ok" in text and "`fact:1` — true" in text
+    assert "### Question\n\n> Which dependency does A have?" in text
+    assert "Question text missing from this review." in text
+    assert "> Second line." in text and "A.cs:1-2" in text and "Checked." in text
+    assert "> Insufficient evidence." in text and "Correct abstention: pending" in text

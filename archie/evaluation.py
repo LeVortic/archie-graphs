@@ -15,7 +15,7 @@ from jsonschema import ValidationError
 
 from .contracts import validate, validate_generation_limits
 from .graph import load_graph
-from .graph_evidence import validate_graph_context
+from .graph_evidence import _overlaps, clipped_excerpt, validate_graph_context
 from .retrieval import content_hash, load_source_index
 
 
@@ -161,6 +161,119 @@ def _configuration_matches(answer, configuration):
     return all(answer["run"].get(key) == configuration[value] for key, value in expected.items())
 
 
+def _review_evidence(answer, chunks):
+    cited = {key for claim in answer["claims"] for key in claim.get("evidence_ids", [])}
+    paths = {path["evidence_id"]: path for path in answer.get("graph_context", {}).get("paths", [])}
+    result = []
+    for item in answer["evidence"]:
+        if item["id"] not in cited:
+            continue
+        entry = dict(item)
+        if item["kind"] == "source_span":
+            entry["excerpts"] = [chunks[key] for key in answer.get("context_chunk_ids", []) if key in chunks
+                                 and all(chunks[key][name] == value for name, value in item["source"].items())]
+        elif item["kind"] == "graph_path" and item["id"] in paths:
+            path = paths[item["id"]]
+            entry["nodes"] = path["nodes"]
+            entry["relationships"] = [{**edge, "excerpts": [clipped_excerpt(edge["source"], chunk)
+                for chunk in path["source_chunks"] if _overlaps(edge["source"], chunk)]} for edge in path["edges"]]
+        result.append(entry)
+    return result
+
+
+def write_review_markdown(review_path, *, state=None, chunks=None):
+    """Write a readable review.MD beside a review JSON, leaving the JSON unchanged."""
+    review_path = Path(review_path)
+    review = json.loads(review_path.read_text(encoding="utf-8"))
+    output = review_path.with_name("review.MD")
+    if output.resolve() == review_path.resolve():
+        raise ValueError("Markdown output must not replace the review JSON")
+
+    items = review["items"]
+    if state is not None:
+        if state["status"] != "complete" or review["run_id"] != state["run_id"]:
+            raise ValueError("Markdown requires a completed experiment and its matching review")
+        questions = {question["id"]: question for question in state["benchmark_snapshot"]["questions"]}
+        grades = {item["answer_index"]: item for item in items}
+        if len(grades) != len(items) or grades.keys() != set(range(len(state["answers"]))):
+            raise ValueError("Review must contain one item per answer")
+        items = []
+        for number, answer in enumerate(state["answers"]):
+            grade = grades[number]
+            if (grade["question_id"], grade["mode"]) != (answer["question_id"], answer["mode"]):
+                raise ValueError(f"Review item {number} does not match its answer record")
+            question = questions[answer["question_id"]]
+            items.append({**grade, "question": question["question"], "answer": answer["answer"],
+                          "claims": answer["claims"], "expected_action": question["expected_action"],
+                          "expected_facts": question["expected_facts"],
+                          "acceptable_citations": question.get("acceptable_citations", []),
+                          "evidence": _review_evidence(answer, chunks),
+                          "error": (answer.get("error") or {}).get("message")})
+
+    def display(value):
+        return "pending" if value is None else str(value).lower() if isinstance(value, bool) else str(value)
+
+    def quote(value):
+        return "\n".join("> " + line for line in str(value).splitlines())
+
+    lines = ["# Benchmark answer review", "", f"Run: `{review['run_id']}`",
+             f"Reviewer: {review.get('reviewer') or 'not assigned'}",
+             f"Status: {review.get('status', 'pending')} · Answers: {len(items)}", "",
+             f"Generated from `{review_path.name}`. Record grades in the JSON and regenerate this file.",
+             "Modes are visible. Claim labels: ok, extra, incorrect, unsupported. Fact matches: true or false.", ""]
+    for item in items:
+        assessment = item.get("assessment") or {}
+        labels = assessment.get("claim_labels") or {}
+        matches = assessment.get("fact_matches") or {}
+        lines += [f"## {item['answer_index'] + 1}. {item['question_id']} — {item['mode']}", "",
+                  f"Status: {item['status']} · Expected action: {item['expected_action']}", "",
+                  "### Question", "", quote(item.get("question", "Question text missing from this review.")),
+                  "", "### Claims", ""]
+        for claim in item["claims"]:
+            citations = ", ".join(claim.get("evidence_ids", [])) or "none"
+            lines += [f"- `{claim['id']}` — {display(labels.get(claim['id']))} · Evidence: {citations}",
+                      "", quote(claim["text"]), ""]
+        if not item["claims"]:
+            lines += [quote(item.get("error") or item["answer"]), ""]
+        for evidence in item.get("evidence", []):
+            lines += [f"#### {evidence['id']} ({evidence['kind']})", ""]
+            if evidence["kind"] == "graph_path":
+                lines += [" → ".join(node["qualified_name"] for node in evidence.get("nodes", [])), ""]
+            for part in evidence.get("relationships", [evidence]):
+                if "kind" in part and part is not evidence:
+                    lines += [f"Relationship: {part['kind']}", ""]
+                for excerpt in part.get("excerpts", []):
+                    lines += [f"`{excerpt['path']}:{excerpt['start_line']}:{excerpt['start_column']}-"
+                              f"{excerpt['end_line']}:{excerpt['end_column']}`", "", quote(excerpt["text"]), ""]
+        lines += ["### Expected facts", ""]
+        for fact in item["expected_facts"]:
+            lines += [f"- `{fact['id']}` — {display(matches.get(fact['id']))}", "", quote(fact["text"]), ""]
+        if not item["expected_facts"]:
+            lines += ["None; assess abstention.", ""]
+        lines += ["Acceptable source regions: " + (", ".join(item.get("acceptable_citations", [])) or "none"),
+                  "", "Correct abstention: " + display(assessment.get("correct_abstention")),
+                  "Unsupported claim IDs: " + display(assessment.get("unsupported_claim_ids")),
+                  "", "Notes:", "", quote(assessment.get("notes") or "No notes."), ""]
+    output.write_text("\n".join(lines), encoding="utf-8")
+    return output
+
+
+def regenerate_review_markdown(run, index):
+    run = Path(run)
+    state = json.loads((run / "experiment.json").read_text(encoding="utf-8"))
+    validate("experiment-record", state)
+    manifest, _, chunks, _ = load_source_index(index)
+    if (manifest["index_id"] != state["index_id"]
+            or manifest["source"]["content_hash"] != state["source_content_hash"]):
+        raise ValueError("Index does not match the saved experiment")
+    return write_review_markdown(_review_path(run), state=state, chunks=chunks)
+
+
+def _review_path(run):
+    graded = run / "review.json"
+    return graded if graded.exists() else run / "review-template.json"
+
+
 def _reports(output, state, benchmark, graph, chunks):
     checks = [check_citations(answer, graph, chunks) for answer in state["answers"]]
     modes = {}
@@ -186,18 +299,18 @@ def _reports(output, state, benchmark, graph, chunks):
     if state["status"] == "complete" and not review_path.exists():
         questions = {question["id"]: question for question in benchmark["questions"]}
         items = [{"answer_index": number, "question_id": answer["question_id"], "mode": answer["mode"],
-                  "expected_action": questions[answer["question_id"]]["expected_action"],
-                  "expected_facts": questions[answer["question_id"]]["expected_facts"],
-                  "acceptable_citations": questions[answer["question_id"]].get("acceptable_citations", []),
-                  "answer": answer["answer"], "claims": answer["claims"], "status": "pending",
-                  "assessment": {"fact_matches": None, "unsupported_claim_ids": None, "correct_abstention": None, "notes": ""}}
+                  "status": "pending",
+                  "assessment": {"claim_labels": dict.fromkeys(claim["id"] for claim in answer["claims"]),
+                                 "fact_matches": dict.fromkeys(fact["id"] for fact in
+                                                              questions[answer["question_id"]]["expected_facts"]),
+                                 "correct_abstention": None, "notes": ""}}
                  for number, answer in enumerate(state["answers"])]
         try:
             _atomic_json(review_path, {"run_id": state["run_id"], "status": "pending", "items": items}, overwrite=False)
         except FileExistsError:
             pass  # A review created concurrently must not be replaced.
     if state["status"] == "complete" and not (output / "review.MD").exists():
-        write_review_markdown(output / "review.json" if (output / "review.json").exists() else review_path)
+        write_review_markdown(_review_path(output), state=state, chunks=chunks)
     return summary
 
 
