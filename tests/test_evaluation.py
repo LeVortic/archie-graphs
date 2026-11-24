@@ -99,9 +99,17 @@ def test_counterbalanced_paired_runs_resume_and_preserve_review(experiment):
     assert summary["factual_grading"] == "pending_human_review"
     assert all(mode["citations_invalid"] == 0 and mode["answered"] == 1 and mode["abstained"] == 1 for mode in summary["modes"].values())
     review = experiment.root / "run/review-template.json"
+    markdown = experiment.root / "run/review.MD"
+    template = json.loads(review.read_text())
+    for question in experiment.benchmark["questions"]:
+        assert question["id"] in markdown.read_text()
+        assert question["question"] in markdown.read_text()
+        assert {item["question"] for item in template["items"] if item["question_id"] == question["id"]} == {question["question"]}
+    markdown.write_text("Keep my Markdown notes.")
     review.write_text('{"human_notes":"keep my edits"}')
     assert run(experiment) == summary and len(experiment.calls) == 4
     assert review.read_text() == '{"human_notes":"keep my edits"}'
+    assert markdown.read_text() == "Keep my Markdown notes."
     run(experiment, output="other")
     other = json.loads((experiment.root / "other/experiment.json").read_text())
     assert state["execution_order"] == other["execution_order"]

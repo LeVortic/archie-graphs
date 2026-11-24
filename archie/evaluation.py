@@ -71,13 +71,12 @@ def software_hash():
     return content_hash("".join(str(path.relative_to(root)) + "\0" + content_hash(path.read_text(encoding="utf-8")) + "\n" for path in files))
 
 
-def _atomic_json(path, value, *, overwrite=True):
+def _atomic_write(path, write, *, overwrite=True):
     temporary = None
     try:
         with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=path.parent, suffix=".tmp", delete=False) as stream:
             temporary = Path(stream.name)
-            json.dump(value, stream, indent=2, allow_nan=False)
-            stream.write("\n")
+            write(stream)
             stream.flush()
             os.fsync(stream.fileno())
         if overwrite:
@@ -87,6 +86,28 @@ def _atomic_json(path, value, *, overwrite=True):
     finally:
         if temporary is not None:
             temporary.unlink(missing_ok=True)
+
+
+def _atomic_json(path, value, *, overwrite=True):
+    def write(stream):
+        json.dump(value, stream, indent=2, allow_nan=False)
+        stream.write("\n")
+
+    _atomic_write(path, write, overwrite=overwrite)
+
+
+def _write_review_markdown(path, run_id, items):
+    def write(stream):
+        stream.write(f"# Benchmark review\n\nRun: {run_id}\n")
+        for item in items:
+            stream.write(f"\n## {item['question_id']} ({item['mode']})\n\n")
+            stream.write(f"**Question:** {item['question']}\n\n")
+            stream.write(f"**Answer:** {item['answer']}\n")
+
+    try:
+        _atomic_write(path, write, overwrite=False)
+    except FileExistsError:
+        pass  # Preserve a review published by a concurrent run.
 
 
 def _checkpoint(path, value):
@@ -183,21 +204,24 @@ def _reports(output, state, benchmark, graph, chunks):
                                    for answer, check in zip(state["answers"], checks)]}
     _atomic_json(output / "summary.json", summary)
     review_path = output / "review-template.json"
-    if state["status"] == "complete" and not review_path.exists():
+    markdown_path = output / "review.MD"
+    if state["status"] == "complete" and (not review_path.exists() or not markdown_path.exists()):
         questions = {question["id"]: question for question in benchmark["questions"]}
         items = [{"answer_index": number, "question_id": answer["question_id"], "mode": answer["mode"],
+                  "question": questions[answer["question_id"]]["question"],
                   "expected_action": questions[answer["question_id"]]["expected_action"],
                   "expected_facts": questions[answer["question_id"]]["expected_facts"],
                   "acceptable_citations": questions[answer["question_id"]].get("acceptable_citations", []),
                   "answer": answer["answer"], "claims": answer["claims"], "status": "pending",
                   "assessment": {"fact_matches": None, "unsupported_claim_ids": None, "correct_abstention": None, "notes": ""}}
                  for number, answer in enumerate(state["answers"])]
-        try:
-            _atomic_json(review_path, {"run_id": state["run_id"], "status": "pending", "items": items}, overwrite=False)
-        except FileExistsError:
-            pass  # A review created concurrently must not be replaced.
-    if state["status"] == "complete" and not (output / "review.MD").exists():
-        write_review_markdown(output / "review.json" if (output / "review.json").exists() else review_path)
+        if not review_path.exists():
+            try:
+                _atomic_json(review_path, {"run_id": state["run_id"], "status": "pending", "items": items}, overwrite=False)
+            except FileExistsError:
+                pass  # A review created concurrently must not be replaced.
+        if not markdown_path.exists():
+            _write_review_markdown(markdown_path, state["run_id"], items)
     return summary
 
 
