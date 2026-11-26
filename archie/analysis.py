@@ -6,6 +6,9 @@ abstentions are reported separately from ordinary F1, and failures stay visible.
 """
 import hashlib
 import json
+from warnings import warn
+
+from .graph import PARTIAL_WARNING
 import math
 import re
 import statistics
@@ -158,6 +161,8 @@ def analyze(experiment_path, review_path, benchmark_path, subsets=None):
     review = json.loads(Path(review_path).read_text(encoding="utf-8"))
     benchmark = json.loads(Path(benchmark_path).read_text(encoding="utf-8"))
     _validate(experiment, review, benchmark)
+    if experiment.get("extraction_status") == "partial":
+        warn(PARTIAL_WARNING, stacklevel=2)
     questions = {question["id"]: question for question in benchmark["questions"]}
     items = {item["answer_index"]: item for item in review["items"]}
     records = [_score(answer, items[number], questions[answer["question_id"]])
@@ -172,6 +177,7 @@ def analyze(experiment_path, review_path, benchmark_path, subsets=None):
         "schema_version": "archie.analysis.v1",
         "run_id": experiment["run_id"],
         "benchmark_version": benchmark["version"],
+        "extraction_status": experiment.get("extraction_status"),
         "model_id": experiment["configuration"].get("model_id"),
         "reviewer": review.get("reviewer"),
         "reviewed_at": review.get("reviewed_at"),

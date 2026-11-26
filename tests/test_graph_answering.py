@@ -187,7 +187,7 @@ def test_context_truncation_fallback_and_empty_abstention(graph_data):
 def test_graph_ask_cli_json_text_and_index_validation(graph_data, monkeypatch, capsys, tmp_path):
     graph, retrieved, chunks = graph_data
     model = RecordingModel()
-    monkeypatch.setattr("archie.cli.load_source_index", lambda path: (None, {"model": {"revision": "test"}}, chunks, None))
+    monkeypatch.setattr("archie.cli.load_source_index", lambda path: (None, {"model": {"revision": "test"}, "extraction_status": retrieved["extraction_status"]}, chunks, None))
     monkeypatch.setattr("archie.cli.SentenceEmbedder", lambda **kwargs: object())
     monkeypatch.setattr("archie.cli.retrieve", lambda *args, **kwargs: retrieved)
     monkeypatch.setattr("archie.cli.QwenModel", lambda **kwargs: model)

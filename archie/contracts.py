@@ -18,7 +18,7 @@ def validate(name, value):
     Draft202012Validator(schema, registry=registry, format_checker=FormatChecker()).validate(value)
 
 
-def validate_index(value, root):
+def validate_index(value, root=None, *, snapshots=None):
     validate("extractor-result", value)
     projects = {p["id"] for p in value["projects"]}
     nodes = {n["id"] for n in value["nodes"]}
@@ -34,15 +34,26 @@ def validate_index(value, root):
             raise ValueError("Edge references an unknown node")
         if edge["status"] != "extracted" or "source" not in edge:
             raise ValueError("Only source-backed extracted edges may enter the index")
+    sources = {} if snapshots is None else snapshots
+    lines_by_path = {}
     for item in value["nodes"] + value["edges"] + value["diagnostics"]:
         if "source" not in item:
             continue
         span = item["source"]
         path = PurePosixPath(span["path"])
-        target = (root / str(path)).resolve()
-        if "\\" in str(path) or path.is_absolute() or ".." in path.parts or not target.is_relative_to(root):
+        if "\\" in str(path) or path.is_absolute() or ".." in path.parts:
             raise ValueError("Source path escapes repository")
-        lines = target.read_text(encoding="utf-8-sig").splitlines()
+        relative = str(path)
+        if relative not in lines_by_path:
+            if snapshots is None:
+                target = (root / relative).resolve()
+                if not target.is_relative_to(root):
+                    raise ValueError("Source path escapes repository")
+                sources[relative] = target.read_text(encoding="utf-8-sig")
+            if not isinstance(sources.get(relative), str):
+                raise ValueError(f"Missing or invalid source snapshot: {relative}")
+            lines_by_path[relative] = sources[relative].splitlines()
+        lines = lines_by_path[relative]
         start = (span["start_line"], span["start_column"])
         end = (span["end_line"], span["end_column"])
         if start > end or end[0] > len(lines):
@@ -52,6 +63,7 @@ def validate_index(value, root):
             width = len(lines[line - 1].encode("utf-16-le")) // 2
             if column > max(1, width):
                 raise ValueError("Invalid source column")
+    return sources
 
 
 def validate_generation_limits(max_new_tokens, timeout_seconds):

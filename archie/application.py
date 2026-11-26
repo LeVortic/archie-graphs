@@ -31,11 +31,12 @@ def index_solution(path, output, extractor: Extractor, *, embedder=None):
     staging = Path(tempfile.mkdtemp(prefix=".building-", dir=output))
     manifest = {
         "schema_version": "archie.index-manifest.v1", "index_id": index_id,
-        "status": "building", "created_at": datetime.now(timezone.utc).isoformat(),
+        "schema_revision": 2, "status": "building", "created_at": datetime.now(timezone.utc).isoformat(),
         "source": {"path": str(path), "content_hash": "sha256:" + "0" * 64},
         "extractor": extractor.identity,
         "artifacts": {"extractor": "extractor.json", "graph": "graph.json",
-                      "source_chunks": "source-chunks.jsonl", "diagnostics": "diagnostics.json"},
+                      "source_chunks": "source-chunks.jsonl", "diagnostics": "diagnostics.json",
+                      "source_snapshots": "source-snapshots.json"},
     }
     write_json(staging / "manifest.json", manifest)
     try:
@@ -44,7 +45,7 @@ def index_solution(path, output, extractor: Extractor, *, embedder=None):
         validate("extractor-request", request)
         result = extractor.extract(request)
         write_json(staging / "extractor.json", result)
-        validate_index(result, root)
+        snapshots = validate_index(result, root)
         if Path(result["input"]["path"]).resolve() != path:
             raise ValueError("Extractor returned a different input path")
         manifest["source"]["content_hash"] = result["input"]["content_hash"]
@@ -55,11 +56,12 @@ def index_solution(path, output, extractor: Extractor, *, embedder=None):
         write_json(staging / "graph.json", {"schema_version": "archie.graph.v1",
                    "nodes": result["nodes"], "edges": result["edges"],
                    "extractor": result["extractor"]})
+        write_json(staging / "source-snapshots.json", snapshots)
         paths = sorted({item["source"]["path"] for item in result["nodes"] + result["edges"] if "source" in item})
         chunks = []
         skipped = []
         for relative in paths:
-            text = (root / relative).read_text(encoding="utf-8-sig")
+            text = snapshots[relative]
             source_chunks = list(chunk_source(relative, text, embedder))
             if not source_chunks:
                 skipped.append(relative)

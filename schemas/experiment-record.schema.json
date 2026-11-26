@@ -21,6 +21,7 @@
       "minimum": 1,
       "default": 1
     },
+    "extraction_status": {"enum": ["succeeded", "partial"]},
     "run_id": {
       "$ref": "common.schema.json#/$defs/identifier"
     },

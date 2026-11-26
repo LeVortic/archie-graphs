@@ -6,6 +6,7 @@ import random
 import re
 import tempfile
 import uuid
+from warnings import warn
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
@@ -14,7 +15,7 @@ from time import perf_counter
 from jsonschema import ValidationError
 
 from .contracts import validate, validate_generation_limits
-from .graph import load_graph
+from .graph import PARTIAL_WARNING, load_graph
 from .graph_evidence import _overlaps, clipped_excerpt, validate_graph_context
 from .retrieval import content_hash, load_source_index
 
@@ -221,6 +222,8 @@ def write_review_markdown(review_path, *, state=None, chunks=None):
              f"Status: {review.get('status', 'pending')} · Answers: {len(items)}", "",
              f"Generated from `{review_path.name}`. Record grades in the JSON and regenerate this file.",
              "Modes are visible. Claim labels: ok, extra, incorrect, unsupported. Fact matches: true or false.", ""]
+    if state is not None and state.get("extraction_status") == "partial":
+        lines += [f"> {PARTIAL_WARNING}", ""]
     for item in items:
         assessment = item.get("assessment") or {}
         labels = assessment.get("claim_labels") or {}
@@ -266,6 +269,8 @@ def regenerate_review_markdown(run, index):
     if (manifest["index_id"] != state["index_id"]
             or manifest["source"]["content_hash"] != state["source_content_hash"]):
         raise ValueError("Index does not match the saved experiment")
+    if state.get("extraction_status") == "partial":
+        warn(PARTIAL_WARNING, stacklevel=2)
     return write_review_markdown(_review_path(run), state=state, chunks=chunks)
 
 
@@ -291,7 +296,8 @@ def _reports(output, state, benchmark, graph, chunks):
             values = [answer["run"][field] for answer in successful if field in answer["run"]]
             modes[mode]["mean_" + field] = math.fsum(values) / len(values) if values else None
     summary = {"run_id": state["run_id"], "status": state["status"], "benchmark_version": benchmark["version"],
-               "benchmark_review": benchmark["review"]["status"], "factual_grading": "pending_human_review", "modes": modes,
+               "benchmark_review": benchmark["review"]["status"], "extraction_status": state["extraction_status"],
+               "factual_grading": "pending_human_review", "modes": modes,
                "citation_checks": [{"question_id": answer["question_id"], "mode": answer["mode"], **check}
                                    for answer, check in zip(state["answers"], checks)]}
     _atomic_json(output / "summary.json", summary)
@@ -314,7 +320,15 @@ def _reports(output, state, benchmark, graph, chunks):
     return summary
 
 
-def evaluate(benchmark, index, output, configuration, answerer, *, seed=0, allow_draft=False, question_ids=None, progress=None):
+def check_extraction_coverage(status, *, allow_partial, on_warning):
+    if status == "partial":
+        on_warning(PARTIAL_WARNING)
+        if not allow_partial:
+            raise ValueError("Evaluation requires complete extraction. Use --allow-partial for a development run.")
+
+
+def evaluate(benchmark, index, output, configuration, answerer, *, seed=0, allow_draft=False,
+             allow_partial=False, question_ids=None, progress=None, on_warning=warn):
     """Answerer(question_text, mode) returns the same answer record as the ask command."""
     _validate_benchmark(benchmark, allow_draft)
     if type(seed) is not int or seed < 0:
@@ -330,6 +344,8 @@ def evaluate(benchmark, index, output, configuration, answerer, *, seed=0, allow
     if embeddings["model"] != configuration["embedding_identity"]:
         raise ValueError("Embedding model identity does not match the selected index")
     graph = load_graph(index)
+    extraction_status = graph.graph["extraction_status"]
+    check_extraction_coverage(extraction_status, allow_partial=allow_partial, on_warning=on_warning)
     if graph.graph["index_id"] != manifest["index_id"]:
         raise ValueError("Graph and retrieval indexes differ")
     for question in benchmark["questions"]:
@@ -354,7 +370,7 @@ def evaluate(benchmark, index, output, configuration, answerer, *, seed=0, allow
     output.mkdir(parents=True, exist_ok=True)
     path = output / "experiment.json"
     fingerprint = {"benchmark_hash": _hash(benchmark), "index_id": manifest["index_id"],
-                   "source_content_hash": manifest["source"]["content_hash"], "seed": seed,
+                   "source_content_hash": manifest["source"]["content_hash"], "extraction_status": extraction_status, "seed": seed,
                    "configuration": frozen, "execution_order": schedule}
     try:
         from filelock import FileLock

@@ -21,6 +21,14 @@ The proposed primary outcome is macro-average atomic-fact F1 per question on the
 
 Human-assessed unsupported architectural claims, valid/relevant source support, correct abstention, failure rates, token use, and latency are secondary. Structural citation validity is an infrastructure check only. Model support_status=uncertain is not a human annotation.
 
+## Extraction coverage
+
+Use a complete extraction for research comparisons. A partial extraction can
+omit relationships needed by either answer mode. Evaluation warns and rejects
+partial indexes by default. The `--allow-partial` override is for development
+runs. Preserve the extraction status in reports and use a portable index with
+provisioned model caches for offline reproduction.
+
 ## Required before research claims
 
 - Confirm research-question wording, primary metric, atomic-fact rules, abstention policy, and failure/exclusion policy.

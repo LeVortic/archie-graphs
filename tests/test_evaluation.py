@@ -27,8 +27,10 @@ class Embedder:
 
 
 @pytest.fixture
-def experiment(tmp_path):
+def experiment(tmp_path, request):
     result = json.loads((ROOT / "fixtures/schemas/valid/extractor-result.json").read_text())
+    if getattr(request, "param", None) == "partial":
+        result["status"] = "partial"
     result["input"]["path"] = str(tmp_path / "App.sln")
     (tmp_path / "App.sln").write_text("fixture")
     for node in result["nodes"]:
@@ -259,6 +261,31 @@ def test_evaluate_cli_and_draft_gate(experiment, monkeypatch, capsys):
     assert "pending" in json.loads(capsys.readouterr().err)["error"]
     assert main(arguments + ["--allow-draft"]) == 0
     assert json.loads(capsys.readouterr().out)["factual_grading"] == "pending_human_review"
+
+
+@pytest.mark.parametrize("experiment", ["partial"], indirect=True)
+def test_partial_evaluation_warns_rejects_and_records_override(experiment, monkeypatch, capsys):
+    benchmark = experiment.root / "benchmark.json"
+    benchmark.write_text(json.dumps(experiment.benchmark))
+    output = experiment.root / "partial-run"
+    args = ["evaluate", str(benchmark), "--index", str(experiment.index), "--output", str(output),
+            "--context-budget", "2048", "--max-new-tokens", "128", "--timeout", "20"]
+    assert main(args) == 1
+    assert "Warning: Partial extraction" in (error := capsys.readouterr().err)
+    assert "--allow-partial" in error
+    assert not output.exists()
+    for path in (experiment.root / "src").rglob("*.cs"):
+        path.unlink()
+    identity = {"model_id": "fake-qwen", "revision": "rev", "runtime_version": "test", "device": "cpu", "dtype": "float32"}
+    monkeypatch.setattr("archie.cli.SentenceEmbedder", lambda **kwargs: Embedder())
+    monkeypatch.setattr("archie.cli.QwenModel", lambda **kwargs: SimpleNamespace(identity=identity))
+    monkeypatch.setattr("archie.cli._ask", lambda index, question, *args, mode, **kwargs: experiment.answerer(question, mode))
+    assert main([*args, "--allow-partial"]) == 0
+    result = capsys.readouterr()
+    assert result.err.count("Warning: Partial extraction") == 1
+    assert json.loads(result.out)["extraction_status"] == "partial"
+    assert json.loads((output / "experiment.json").read_text())["extraction_status"] == "partial"
+    assert "Partial extraction" in (output / "review.MD").read_text()
 
 
 def test_concurrent_writer_is_rejected_and_existing_results_are_safe(experiment):

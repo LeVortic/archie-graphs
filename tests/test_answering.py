@@ -184,7 +184,7 @@ def test_qwen_rejects_failed_or_invalid_worker_responses(adapter, monkeypatch, d
 
 def test_ask_cli_json_text_and_failed_status(retrieved, monkeypatch, capsys, tmp_path):
     model = FakeModel()
-    monkeypatch.setattr("archie.cli.load_source_index", lambda path: (None, {"model": {"revision": "test"}}, None, None))
+    monkeypatch.setattr("archie.cli.load_source_index", lambda path: (None, {"model": {"revision": "test"}, "extraction_status": retrieved["extraction_status"]}, None, None))
     monkeypatch.setattr("archie.cli.SentenceEmbedder", lambda **kwargs: object())
     monkeypatch.setattr("archie.cli.retrieve", lambda *args, **kwargs: retrieved)
     monkeypatch.setattr("archie.cli.QwenModel", lambda **kwargs: model)
@@ -193,6 +193,12 @@ def test_ask_cli_json_text_and_failed_status(retrieved, monkeypatch, capsys, tmp
     assert json.loads(capsys.readouterr().out)["claims"]
     assert main(args + ["--format", "text"]) == 0
     assert "src/1.cs:1:1-1:10" in capsys.readouterr().out
+    retrieved["extraction_status"] = "partial"
+    assert main(args) == 0
+    output = capsys.readouterr()
+    assert json.loads(output.out)["claims"]
+    assert "Warning: Partial extraction" in output.err
+    retrieved["extraction_status"] = "succeeded"
     model.value["claims"][0]["evidence_ids"] = ["evidence:99"]
     assert main(args) == 1
     assert json.loads(capsys.readouterr().err)["status"] == "failed"

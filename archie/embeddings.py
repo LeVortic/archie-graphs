@@ -22,12 +22,12 @@ class SentenceEmbedder:
         if selected == "cuda" and not torch.cuda.is_available():
             raise ValueError("CUDA is unavailable; install a compatible PyTorch build or select --device cpu")
         try:
-            config_path = hf_hub_download(MODEL_ID, "config.json", revision=revision, cache_dir=cache_dir)
+            config_path = hf_hub_download(MODEL_ID, "config.json", revision=revision, cache_dir=cache_dir, local_files_only=True)
             resolved = Path(config_path).parent.name
             if not re.fullmatch(r"[a-f0-9]{40}", resolved):
                 raise ValueError("Embedding model revision could not be resolved")
             self.model = SentenceTransformer(MODEL_ID, device=selected, cache_folder=cache_dir,
-                                             revision=resolved, trust_remote_code=False)
+                                             revision=resolved, local_files_only=True, trust_remote_code=False)
             self.device = selected
             self.max_tokens = self.model.max_seq_length
             dimensions = len(self.embed(["embedding runtime check"])[0])
@@ -38,7 +38,7 @@ class SentenceEmbedder:
                              "dimensions": dimensions,
                              "max_tokens": self.max_tokens, "normalized": True}
         except (OSError, RuntimeError) as error:
-            raise ValueError(f"Local embedding runtime failed on {selected}: {error}") from error
+            raise ValueError(f"Local embedding runtime failed on {selected}; provision the model cache first: {error}") from error
 
     def count_tokens(self, text):
         return len(self.model.tokenizer(text, truncation=False)["input_ids"])

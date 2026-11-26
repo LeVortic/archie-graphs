@@ -128,10 +128,32 @@ def test_partial_extraction_is_visible_and_cli_schema_errors_are_json(published,
     result = query_dependencies(load_graph(published), "type:App.Isolated")
     assert result["extraction_status"] == "partial"
     assert result["diagnostics"] == value["diagnostics"]
+    assert main(["inspect", "dependencies", str(published), "type:App.Isolated"]) == 0
+    output = capsys.readouterr()
+    assert json.loads(output.out)["extraction_status"] == "partial"
+    assert "Warning: Partial extraction" in output.err
     value["status"] = "invalid"
     path.write_text(json.dumps(value))
     assert main(["inspect", "dependencies", str(published), "type:App.Isolated"]) == 1
     assert json.loads(capsys.readouterr().err)["status"] == "failed"
+
+
+def test_portable_graph_and_legacy_checkout_fallback(published):
+    path = published / "manifest.json"
+    manifest = json.loads(path.read_text())
+    old_manifest = deepcopy(manifest)
+    old_manifest.pop("schema_revision")
+    old_manifest["artifacts"].pop("source_snapshots")
+    path.write_text(json.dumps(old_manifest))
+    assert load_graph(published).number_of_edges()
+    snapshot = json.loads((published / "source-snapshots.json").read_text())
+    root = published.parents[1]
+    for relative in snapshot:
+        (root / relative).unlink()
+    with pytest.raises(FileNotFoundError):
+        load_graph(published)
+    path.write_text(json.dumps(manifest))
+    assert load_graph(published).number_of_edges()
 
 
 @pytest.fixture

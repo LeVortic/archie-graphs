@@ -8,6 +8,9 @@ import networkx as nx
 from .contracts import validate, validate_index
 
 
+PARTIAL_WARNING = ("Partial extraction: graph coverage is incomplete and missing relationships are inconclusive. "
+                   "See extraction diagnostics in the index.")
+
 def load_graph(index):
     index = Path(index).resolve(strict=True)
     manifest = json.loads((index / "manifest.json").read_text(encoding="utf-8"))
@@ -25,8 +28,19 @@ def load_graph(index):
         raise ValueError("Extractor content hash does not match manifest")
     if {key: result["extractor"][key] for key in manifest["extractor"]} != manifest["extractor"]:
         raise ValueError("Extractor identity does not match manifest")
-    root = Path(result["input"]["path"]).resolve().parent
-    validate_index(result, root)
+    if "source_snapshots" in manifest["artifacts"]:
+        snapshot_path = (index / manifest["artifacts"]["source_snapshots"]).resolve(strict=True)
+        if not snapshot_path.is_relative_to(index):
+            raise ValueError("Source snapshot artifact escapes index directory")
+        snapshots = json.loads(snapshot_path.read_text(encoding="utf-8"))
+        if not isinstance(snapshots, dict):
+            raise ValueError("Invalid source snapshot artifact")
+        validate_index(result, snapshots=snapshots)
+    elif manifest.get("schema_revision", 1) >= 2:
+        raise ValueError("Portable index is missing its source snapshot artifact")
+    else:
+        root = Path(result["input"]["path"]).resolve().parent
+        validate_index(result, root)
     graph = nx.MultiDiGraph(index_id=manifest["index_id"], extractor=result["extractor"],
                             extraction_status=result["status"], diagnostics=result["diagnostics"])
     for node in sorted(result["nodes"], key=lambda item: item["id"]):

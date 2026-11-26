@@ -32,14 +32,14 @@ class QwenModel:
             raise ValueError("CUDA is unavailable; use --device cpu or install compatible PyTorch")
         self.cache_dir = str(Path(cache_dir).resolve())
         try:
-            config = hf_hub_download(MODEL_ID, "config.json", revision=revision, cache_dir=self.cache_dir)
+            config = hf_hub_download(MODEL_ID, "config.json", revision=revision, cache_dir=self.cache_dir, local_files_only=True)
             resolved = Path(config).parent.name
             if not re.fullmatch(r"[a-f0-9]{40}", resolved):
                 raise ValueError("Qwen revision could not be resolved")
             self.tokenizer = AutoTokenizer.from_pretrained(MODEL_ID, revision=resolved,
-                cache_dir=self.cache_dir, trust_remote_code=False)
+                cache_dir=self.cache_dir, local_files_only=True, trust_remote_code=False)
         except (OSError, RuntimeError) as error:
-            raise ValueError(f"Qwen tokenizer failed: {error}") from error
+            raise ValueError(f"Qwen tokenizer failed; provision the model cache first: {error}") from error
         self.identity = {"model_id": MODEL_ID, "revision": resolved,
                          "runtime_version": (f"transformers:{version('transformers')} torch:{version('torch')} "
                                              f"lm-format-enforcer:{decoder_version}"),
@@ -112,9 +112,9 @@ def _worker():
 
     request = json.load(sys.stdin)
     tokenizer = AutoTokenizer.from_pretrained(MODEL_ID, revision=request["revision"],
-        cache_dir=request["cache_dir"], trust_remote_code=False)
+        cache_dir=request["cache_dir"], local_files_only=True, trust_remote_code=False)
     model = AutoModelForCausalLM.from_pretrained(MODEL_ID, revision=request["revision"],
-        cache_dir=request["cache_dir"], trust_remote_code=False,
+        cache_dir=request["cache_dir"], local_files_only=True, trust_remote_code=False,
         dtype=torch.bfloat16 if request["device"] == "cuda" else torch.float32).to(request["device"]).eval()
     inputs = tokenizer(request["prompt"], add_special_tokens=False, return_tensors="pt").to(request["device"])
     count = inputs["input_ids"].shape[-1]

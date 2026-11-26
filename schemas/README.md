@@ -21,7 +21,7 @@ Schemas use JSON Schema Draft 2020-12. `$id` values use the repository URL and i
 
 ## Extractor port
 
-Every adapter implements the same logical port:
+V1 adapters implement `extract` and expose adapter identity. Probe and cancel remain proposed:
 
 ```text
 probe(input) -> capabilities and diagnostics
@@ -29,7 +29,7 @@ extract(request) -> ExtractorResult
 cancel(operation_id) -> acknowledgement
 ```
 
-`extractor-result.v1` is the interchange boundary. The Python pipeline must not import Roslyn types or assume C#-specific node kinds beyond advertised capabilities.
+`extractor-result.v1` is the interchange boundary. The Python pipeline consumes the shared contract independently of Roslyn types.
 
 ## Identity rules
 
@@ -47,6 +47,8 @@ cancel(operation_id) -> acknowledgement
 4. Set `status: complete` only after validation succeeds.
 5. Publish or rename the completed directory atomically.
 6. On failure, write `status: failed` and preserve diagnostics.
+
+Manifest revision 2 adds `artifacts.source_snapshots`, an index-relative path to a JSON object mapping repository-relative source paths to their text. Graph loading validates source spans against that artifact. Revision 1 indexes can still use their original checkout. New experiment records include `extraction_status` to distinguish partial coverage from publication or run completion.
 
 ## Validation
 
