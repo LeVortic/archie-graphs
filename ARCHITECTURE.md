@@ -1,6 +1,6 @@
 # ArchiE Graphs Software Architecture
 
-Status: proposed
+Status: V1 implementation and proposed interfaces
 
 ## Purpose
 
@@ -17,8 +17,17 @@ flowchart LR
     CLI --> Ask[Ask workflow]
     CLI --> Inspect[Inspect workflow]
     CLI --> Evaluate[Evaluate workflow]
+    CLI --> Retrieve[Retrieve workflow]
+    CLI --> Review[Review markdown workflow]
+    CLI --> Analyze[Analyze workflow]
     Index --> Repo[(Local C# repository)]
+    Index --> Published[(Published index)]
+    Published --> Ask & Inspect & Retrieve & Evaluate & Review
+    Results --> Review & Analyze
+    Human[Human reviewer] --> Analyze
+    Analyze --> Scores[(Factual analysis)]
     Ask --> LocalModels[(Local embedding and LLM runtimes)]
+    Index & Retrieve & Evaluate --> LocalModels
     Evaluate --> Benchmark[(Versioned benchmark)]
     Evaluate --> Results[(Experiment results)]
 ```
@@ -28,46 +37,34 @@ flowchart LR
 ```mermaid
 flowchart TB
     subgraph Python[Python CLI process]
-        Commands[CLI commands]
-        IndexApp[Index application service]
-        AskApp[Ask application service]
-        EvalApp[Evaluation application service]
-        Graph[NetworkX graph adapter]
-        Source[Source chunk and citation store]
-        Retrieval[Retrieval ports]
-        Answer[Answer orchestration]
-        Schemas[Schema validation]
-        Artifacts[Versioned artifact store]
+        CLI[CLI and composition root]
+        Index[Index orchestration]
+        Ask[Shared ask orchestration in CLI]
+        Evaluate[Paired evaluation]
+        Inspect[NetworkX graph queries]
+        Retrieval[Source retrieval]
+        Answer[Prompt and citation validation]
+        Validation[Contract validation]
     end
+    Roslyn[Roslyn subprocess]
+    Repository[(C# solution or project)]
+    Files[(Published index)]
+    Embeddings[Local embedding runtime]
+    LLM[Local generation subprocess]
+    Runs[(Experiment and review records)]
 
-    subgraph ExtractorProcess[Extractor process]
-        ExtractorApp[Extractor application service]
-        ExtractorPort[Extractor interface]
-        Roslyn[Roslyn adapter]
-        OtherExtractors[Future extractor adapters]
-        ExtractorOutput[Extractor JSON]
-    end
-
-    subgraph External[Local or filesystem dependencies]
-        Repository[(C# solution)]
-        Embeddings[Embedding runtime]
-        LLM[Language model runtime]
-        Files[(Artifact directory)]
-    end
-
-    Commands --> IndexApp & AskApp & EvalApp
-    IndexApp --> ExtractorApp
-    ExtractorApp --> ExtractorPort
-    ExtractorPort --> Roslyn --> Repository
-    ExtractorPort -. future implementations .-> OtherExtractors
-    ExtractorApp --> ExtractorOutput
-    IndexApp --> Schemas --> Graph & Source
-    Graph & Source --> Artifacts --> Files
-    AskApp --> Retrieval --> Embeddings
-    AskApp --> Answer --> LLM
-    Answer --> Graph & Source
-    EvalApp --> AskApp
-    EvalApp --> Files
+    CLI --> Index & Ask & Inspect & Evaluate & Retrieval
+    Index --> Roslyn --> Repository
+    Roslyn -->|Versioned JSON| Index
+    Index --> Validation --> Files
+    Index -->|Optional embeddings| Embeddings
+    Files --> Inspect & Retrieval
+    Evaluate -->|Shared ask callback| Ask
+    Evaluate --> Runs
+    Ask --> Retrieval & Answer
+    Ask -->|Graph mode| Inspect
+    Retrieval --> Embeddings
+    Answer --> LLM
 ```
 
 ## Index data flow
@@ -75,44 +72,59 @@ flowchart TB
 ```mermaid
 sequenceDiagram
     participant C as CLI
-    participant I as IndexService
-    participant X as ExtractorAdapter
-    participant V as Validator
-    participant G as GraphBuilder
-    participant S as SourceIndexer
-    participant A as ArtifactStore
+    participant I as Index orchestration
+    participant X as Roslyn subprocess
+    participant V as Contract validation
+    participant A as Index staging directory
 
-    C->>I: index(solution)
-    I->>X: extract(solution)
-    X-->>I: versioned extractor JSON
-    I->>V: validate(JSON)
-    V-->>I: valid data or diagnostics
-    I->>G: build graph(data)
-    I->>S: index source(data)
-    G-->>A: graph + edge evidence
-    S-->>A: chunks + line citations
-    I-->>C: index manifest + diagnostics
+    C->>I: index(solution or project)
+    I->>A: Create staging and building manifest
+    I->>V: Validate extractor request
+    I->>X: Send request on stdin
+    X-->>I: Return versioned result on stdout
+    I->>A: Save raw extractor JSON
+    I->>V: Validate result and capture source snapshots
+    alt Publishable extraction
+        I->>A: Write graph export, snapshots, chunks and diagnostics
+        opt Embedding requested
+            I->>A: Write validated embeddings
+        end
+        I->>V: Validate complete manifest
+        I->>A: Write manifest and atomically rename directory
+        I-->>C: Published index path
+    else Extraction, validation or publication fails
+        I->>A: Preserve staging with failed manifest and error
+        I-->>C: Failure with staging path
+    end
 ```
 
 ## Ask and experiment flow
 
 ```mermaid
 flowchart LR
-    Q[Question] --> Mode{Mode}
-    Mode -->|source| SR[Source retriever]
-    Mode -->|graph| SR
-    Mode -->|graph| GQ[Bounded graph query]
-    SR --> Context[Evidence context]
+    Ask[Standalone ask] --> SR[Source retrieval]
+    Benchmark[Versioned benchmark] --> Gate[Check extraction coverage]
+    Gate -->|Partial without override| Reject[Warn and reject]
+    Gate -->|Complete extraction| Schedule[Paired schedule]
+    Gate -->|Warn and allow partial override| Schedule
+    Schedule --> SR
+    SR --> Mode{Mode}
+    SR -->|Source chunks in both modes| Context[Bounded evidence context]
+    Mode -->|graph| GQ[Bounded graph query seeded from retrieved spans]
     GQ --> Context
     Context --> Prompt[Prompt builder]
     Prompt --> LLM[Local language model]
-    LLM --> Validate[Answer and citation validator]
-    Validate --> Output[Text or JSON answer]
-    Output --> Record[Experiment record]
-    Record --> Metrics[Metric analysis]
+    LLM --> Validate[Answer and citation validation]
+    Validate -->|ask| Output[Text or JSON answer]
+    Validate -->|evaluate| Record[Checkpoint attempt]
+    Record --> Summary[Operational and citation summary]
+    Record --> Review[Human factual review]
+    Review --> Analysis[Analyze factual scores]
 ```
 
 ## Module responsibilities
+
+The table describes target responsibilities. Graph and storage ports and extractor probe and cancel remain proposed. The runtime diagram shows current wiring.
 
 | Module | Owns | Must not own |
 | --- | --- | --- |
@@ -127,7 +139,7 @@ flowchart LR
 | `evaluation` | Benchmark execution, result records, metrics | Production query policy |
 | `storage` | Atomic artifact reads/writes and manifests | Business decisions |
 
-## Dependency direction
+## Proposed dependency direction
 
 ```mermaid
 flowchart BT
@@ -138,10 +150,11 @@ flowchart BT
     CLI[CLI]
     Tests[Tests]
 
-    Contracts --> Ports
-    Ports --> Application
-    Application --> Adapters
+    Ports --> Contracts
+    Application --> Ports
+    Adapters --> Ports & Contracts
     CLI --> Application
+    CLI -->|Composition root| Adapters
     Tests --> Contracts & Ports & Application & Adapters
 ```
 
@@ -203,8 +216,9 @@ ArtifactStore.read/write(manifest, artifact)
 3. Unresolved symbols become diagnostics or explicitly marked `UNRESOLVED` records.
 4. `INFERRED` relationships, if added later, cannot be presented as source fact.
 5. Every answer citation must resolve to an indexed file and valid line range.
-6. Never send repository content to a remote service. Model adapters are local-only by contract.
-7. Write artifacts atomically and keep failed experiment records.
+6. Run commands with networking disabled after provisioning dependencies and model caches. Model adapters use local files only.
+7. Warn on partial extraction during inspection, answering, and evaluation. Evaluation requires an explicit development override and records extraction status.
+8. Write artifacts atomically and keep failed experiment records.
 
 ## Contract schemas
 
@@ -227,7 +241,7 @@ Persisted objects reject unknown fields. Top-level contracts use `schema_version
 - Content hashes use lowercase `sha256:<64 hex digits>`.
 - Producers sort persisted arrays deterministically.
 
-### Extractor port
+### Proposed extractor port
 
 ```text
 probe(input) -> capabilities and diagnostics
@@ -257,17 +271,19 @@ artifacts/
   index/<index-id>/
     manifest.json
     extractor.json
-    graph.json
+    graph.json              # export
+    source-snapshots.json   # referenced source files for span validation
     source-chunks.jsonl
-    embeddings.index
+    embeddings.json        # optional
     diagnostics.json
-  experiments/<run-id>/
-    run.json
-    answers.jsonl
-    metrics.json
+  evaluations/<run-directory>/
+    experiment.json
+    summary.json
+    review-template.json
+    review.MD
 ```
 
-Every manifest records schema versions, source commit or content hash, extractor interface version, adapter identity/version, model identities, configuration, and creation time.
+The index manifest records source content hash, extractor identity and interface version, artifact paths, and creation time. Embedding identity is stored in `embeddings.json`. NetworkX rebuilds from `extractor.json` and validates spans using the published snapshots. Earlier indexes require their original checkout for graph operations. Experiment records capture model and runtime identities, configuration, and extraction status.
 
 ## Testing strategy
 

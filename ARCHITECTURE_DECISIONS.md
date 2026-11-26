@@ -108,7 +108,7 @@ Use Sentence Transformers with `sentence-transformers/all-MiniLM-L6-v2`, selecti
 ### Consequences
 
 - GPU generation and CPU querying use the same artifact format and model identity.
-- First use downloads weights and optional dependencies; inference never sends repository text remotely.
+- ADR-010 supersedes first-use downloads. Provision weights and optional dependencies before running commands.
 - Runtime/model changes invalidate the cache; device-only changes retain reuse with minor numerical differences possible.
 - Source snapshots allow retrieval without the original checkout.
 - Linear in-memory search is intentionally limited to local study indexes; a larger corpus may need a dedicated vector index.
@@ -154,7 +154,7 @@ Reuse the source-answering pipeline and preserve its public API. Anchor graph se
 - Source behavior and the existing index format remain compatible.
 - Graph evidence can expose paths absent from the top-k source excerpts without adding inferred edges.
 - Path selection is bounded and heuristic; absent results are not proof of absent dependencies.
-- The current graph loader still requires the original checkout for span validation; model excerpts come from snapshots.
+- The initial graph loader required the original checkout. ADR-010 adds portable source snapshots for span validation.
 - Citation validity is checked mechanically; semantic support remains uncertain.
 - A paired smoke test validates execution, not comparative quality. Reviewed benchmarks and experiment controls are still required.
 
@@ -180,3 +180,25 @@ Draft separate versioned fixture and MarkovJunior development benchmarks with ex
 - The proposed primary metric is human-annotated atomic-fact F1 on multi-hop questions, with precision and recall; this protocol still needs approval.
 - Development/calibration questions cannot be presented as held-out research evidence.
 - Citation validity alone does not establish factual correctness, support, or relevance.
+
+## ADR-010: Portable indexes, offline execution, and partial extraction
+
+Status: accepted
+
+Published V1 indexes must support inspection, source and graph answering, and
+evaluation after the original checkout moves or changes. The extractor result is
+the canonical graph input. Publish source snapshots for span validation alongside
+it. Earlier indexes remain readable with their original checkout and can be
+re-indexed to obtain a portable artifact.
+
+Commands must work with networking disabled once dependencies, C# project
+references, and model files have been provisioned. Model adapters load only
+locally cached files. Provisioning is a separate setup step.
+
+Inspect and ask warn on partial extraction and point to the index diagnostics.
+A missing relationship in a partial index is inconclusive. Evaluation also warns
+and rejects partial extraction by default. An explicit development override
+allows the run and records its extraction status. Factual analysis preserves the
+warning and status when reading such a run.
+
+Graph and storage ports and extractor probe and cancel remain proposed.
