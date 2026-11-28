@@ -4,6 +4,8 @@ The first working milestone indexes a local C# solution into validated, source-b
 
 ## Setup
 
+See the [Codex or Claude Code quickstart](RUN_WITH_CODEX_OR_CLAUDE.md) to run the fixture with a coding assistant.
+
 Requires Python 3.11+ and the .NET 10 SDK. Run from this directory:
 
 ```sh
