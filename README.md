@@ -93,6 +93,14 @@ First index the fixture, then use the published directory printed by `archie ind
 
 Replace `INDEX_DIRECTORY` with the actual directory name. Exact symbol IDs are available in that index's `extractor.json`; quoted IDs above apply to the supplied fixture.
 
+For example, one of the Controller edges shows why it depends on
+`Fixture.Core.IService`. The path in the source span is relative to the
+fixture solution directory.
+
+| From | Relationship | To | Source |
+| --- | --- | --- | --- |
+| `Fixture.App.Controller` | `field_use` | `Fixture.Core.IService` | [App/Controller.cs:7](fixtures/csharp/App/Controller.cs#L7) |
+
 `dependencies` returns outgoing relationships; `dependents` returns incoming relationships while preserving their original `from` and `to` endpoints. Both inspect one hop over all relationship kinds, without aggregating method calls into type-level dependencies. Results include nodes, original edges and citations, extractor identity, extraction status, diagnostics, and a `truncated` flag. The edge limit defaults to 100 and accepts 1–1000; at most limit + 1 nodes are returned. Results are deterministic for identical input regardless of artifact array ordering.
 
 Queries accept only complete published manifests, validate the extractor contract and source evidence, and reject unknown symbol IDs. Partial extraction remains queryable and is labeled in results. Original source files must remain available and unchanged for evidence validation; queries do not rerun extraction or verify source content hashes against current disk contents. Loading and validating the index is not bounded by the query result limit. Queries do not modify published indexes.
