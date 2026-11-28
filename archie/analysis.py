@@ -37,6 +37,30 @@ def _median(values):
     return statistics.median(values) if values else None
 
 
+def _beta_cdf(x, a, b):
+    # For whole-number a and b, the Beta CDF equals P(Binomial(a + b - 1, x) >= a).
+    n = a + b - 1
+    return math.fsum(math.comb(n, k) * x ** k * (1 - x) ** (n - k) for k in range(a, n + 1))
+
+
+def _beta_quantile(q, a, b):
+    low, high = 0.0, 1.0
+    for _ in range(60):
+        middle = (low + high) / 2
+        low, high = (middle, high) if _beta_cdf(middle, a, b) < q else (low, middle)
+    return (low + high) / 2
+
+
+def _win_rate_interval(wins, losses, level=0.95):
+    """Beta-Bernoulli credible interval for P(graph beats source) on non-tied questions, uniform prior."""
+    a, b = 1 + wins, 1 + losses
+    tail = (1 - level) / 2
+    lower, upper = _beta_quantile(tail, a, b), _beta_quantile(1 - tail, a, b)
+    return {"level": level, "prior": "Beta(1, 1)", "non_tied_pairs": wins + losses,
+            "posterior_mean": a / (a + b), "lower": lower, "upper": upper,
+            "excludes_one_half": lower > 0.5 or upper < 0.5}
+
+
 def _validate(experiment, review, benchmark):
     if experiment.get("status") != "complete":
         raise ValueError("The experiment run is not complete")
@@ -147,6 +171,7 @@ def _paired(records):
                        "graph_better": sum(d > 1e-9 for d in differences),
                        "source_better": sum(d < -1e-9 for d in differences),
                        "ties": sum(abs(d) <= 1e-9 for d in differences)}
+        result[key]["graph_win_rate"] = _win_rate_interval(result[key]["graph_better"], result[key]["source_better"])
     return result
 
 
@@ -189,6 +214,8 @@ def analyze(experiment_path, review_path, benchmark_path, subsets=None):
             "macro_*_answered": "mean over answerable questions the mode answered (abstentions excluded)",
             "macro_f1_abstain_as_zero": "mean over all answerable questions, an abstention scoring F1 = 0",
             "paired_f1": "per-question graph minus source F1 on questions with a scored answer in both modes",
+            "graph_win_rate": "Beta-Bernoulli 95% credible interval, uniform prior, for the share of non-tied pairs "
+                              "where graph F1 is higher; an interval above 0.5 favours graph mode",
         },
         "groups": {name: _group(group) for name, group in groups.items()},
         "per_answer": records,

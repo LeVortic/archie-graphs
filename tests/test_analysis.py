@@ -3,7 +3,7 @@ import json
 
 import pytest
 
-from archie.analysis import analyze, analyze_to_file
+from archie.analysis import _beta_quantile, _win_rate_interval, analyze, analyze_to_file
 from archie.cli import main
 
 BENCHMARK = {"version": "toy-v1", "questions": [
@@ -70,6 +70,21 @@ def test_scores_follow_human_labels_and_keep_abstentions_separate(records):
     assert paired["abstain_as_zero"]["graph_better"] == 1 and paired["abstain_as_zero"]["source_better"] == 1
     multi_hop = result["groups"]["multi_hop (depth >= 2)"]["modes"]["graph"]
     assert multi_hop["answerable_questions"] == 1
+
+
+def test_win_rate_interval_uses_the_beta_posterior(records):
+    assert _beta_quantile(0.025, 1, 1) == pytest.approx(0.025)
+    assert _beta_quantile(0.36, 2, 1) == pytest.approx(0.6)  # Beta(2, 1) has CDF x ** 2
+    interval = _win_rate_interval(9, 1)
+    assert interval["posterior_mean"] == pytest.approx(10 / 12)
+    assert interval["lower"] > 0.5 and interval["excludes_one_half"]
+    empty = _win_rate_interval(0, 0)
+    assert (empty["lower"], empty["upper"]) == (pytest.approx(0.025), pytest.approx(0.975))
+    assert not empty["excludes_one_half"]
+    result = analyze(records["experiment"], records["review"], records["benchmark"])
+    tied = result["groups"]["all"]["paired_f1"]["abstain_as_zero"]["graph_win_rate"]
+    assert tied["non_tied_pairs"] == 2 and tied["posterior_mean"] == pytest.approx(0.5)
+    assert tied["lower"] == pytest.approx(0.0943, abs=1e-4) and tied["upper"] == pytest.approx(0.9057, abs=1e-4)
 
 
 def test_inputs_are_never_modified_and_hashes_are_recorded(records, tmp_path):
