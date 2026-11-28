@@ -38,6 +38,21 @@ dotnet build fixtures/csharp/Fixture.sln -p:AllowMissingPrunePackageData=true -p
 
 These flags work around that local installation; a normal SDK should use the standard commands.
 
+If the fixture solution build fails without a reported error, try building the
+app project and then building the solution with one MSBuild worker:
+
+```sh
+dotnet build fixtures/csharp/App/App.csproj
+dotnet build fixtures/csharp/Fixture.sln --no-restore -m:1
+```
+
+The app project restores and builds its referenced Core project. If the builds
+pass but indexing reports that Roslyn's build host exited before connecting
+to its pipe, record the extractor error and `dotnet --info` from the same
+shell. Retry the indexing command in a local shell with the SDK selected by
+`global.json` to see whether the startup failure is specific to the managed
+environment.
+
 ## Indexing, step by step
 
 1. `archie index` checks the input and creates a staging directory with a `building` manifest.
