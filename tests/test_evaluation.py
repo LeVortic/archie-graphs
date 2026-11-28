@@ -98,13 +98,15 @@ def test_counterbalanced_paired_runs_resume_and_preserve_review(experiment):
     first_modes = Counter(state["execution_order"][n]["mode"] for n in (0, 2))
     assert first_modes == {"source": 1, "graph": 1}
     assert state["benchmark_snapshot"] == experiment.benchmark
-    assert (experiment.root / "run/review.MD").is_file()
+    markdown_path = experiment.root / "run/review.MD"
     generated = json.loads((experiment.root / "run/review-template.json").read_text())
     for item, answer in zip(generated["items"], state["answers"], strict=True):
         assert set(item) == {"answer_index", "question_id", "mode", "status", "assessment"}
         assert item["assessment"]["claim_labels"] == dict.fromkeys(claim["id"] for claim in answer["claims"])
-    markdown = (experiment.root / "run/review.MD").read_text()
-    assert all(question["question"] in markdown for question in experiment.benchmark["questions"])
+    markdown = markdown_path.read_text()
+    for question in experiment.benchmark["questions"]:
+        assert f". {question['id']} — " in markdown
+        assert question["question"] in markdown
     assert "#### evidence:1 (source_span)" in markdown
     assert "#### evidence:1 (graph_path)" in markdown
     assert "Relationship:" in markdown
@@ -123,9 +125,12 @@ def test_counterbalanced_paired_runs_resume_and_preserve_review(experiment):
     assert summary["factual_grading"] == "pending_human_review"
     assert all(mode["citations_invalid"] == 0 and mode["answered"] == 1 and mode["abstained"] == 1 for mode in summary["modes"].values())
     review = experiment.root / "run/review-template.json"
+    markdown_path.write_bytes(b"Keep my Markdown notes.\n")
     review.write_text('{"human_notes":"keep my edits"}')
     assert run(experiment) == summary and len(experiment.calls) == 4
     assert review.read_text() == '{"human_notes":"keep my edits"}'
+    assert markdown_path.read_bytes() == b"Keep my Markdown notes.\n"
+    assert graded.read_bytes() == before
     run(experiment, output="other")
     other = json.loads((experiment.root / "other/experiment.json").read_text())
     assert state["execution_order"] == other["execution_order"]

@@ -72,13 +72,12 @@ def software_hash():
     return content_hash("".join(str(path.relative_to(root)) + "\0" + content_hash(path.read_text(encoding="utf-8")) + "\n" for path in files))
 
 
-def _atomic_json(path, value, *, overwrite=True):
+def _atomic_write(path, write, *, overwrite=True):
     temporary = None
     try:
         with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=path.parent, suffix=".tmp", delete=False) as stream:
             temporary = Path(stream.name)
-            json.dump(value, stream, indent=2, allow_nan=False)
-            stream.write("\n")
+            write(stream)
             stream.flush()
             os.fsync(stream.fileno())
         if overwrite:
@@ -88,6 +87,14 @@ def _atomic_json(path, value, *, overwrite=True):
     finally:
         if temporary is not None:
             temporary.unlink(missing_ok=True)
+
+
+def _atomic_json(path, value, *, overwrite=True):
+    def write(stream):
+        json.dump(value, stream, indent=2, allow_nan=False)
+        stream.write("\n")
+
+    _atomic_write(path, write, overwrite=overwrite)
 
 
 def _checkpoint(path, value):
@@ -182,7 +189,7 @@ def _review_evidence(answer, chunks):
     return result
 
 
-def write_review_markdown(review_path, *, state=None, chunks=None):
+def write_review_markdown(review_path, *, state=None, chunks=None, overwrite=True):
     """Write a readable review.MD beside a review JSON, leaving the JSON unchanged."""
     review_path = Path(review_path)
     review = json.loads(review_path.read_text(encoding="utf-8"))
@@ -257,7 +264,11 @@ def write_review_markdown(review_path, *, state=None, chunks=None):
                   "", "Correct abstention: " + display(assessment.get("correct_abstention")),
                   "Unsupported claim IDs: " + display(assessment.get("unsupported_claim_ids")),
                   "", "Notes:", "", quote(assessment.get("notes") or "No notes."), ""]
-    output.write_text("\n".join(lines), encoding="utf-8")
+    try:
+        _atomic_write(output, lambda stream: stream.write("\n".join(lines)), overwrite=overwrite)
+    except FileExistsError:
+        if overwrite:
+            raise
     return output
 
 
@@ -316,7 +327,7 @@ def _reports(output, state, benchmark, graph, chunks):
         except FileExistsError:
             pass  # A review created concurrently must not be replaced.
     if state["status"] == "complete" and not (output / "review.MD").exists():
-        write_review_markdown(_review_path(output), state=state, chunks=chunks)
+        write_review_markdown(_review_path(output), state=state, chunks=chunks, overwrite=False)
     return summary
 
 
